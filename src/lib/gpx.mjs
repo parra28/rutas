@@ -393,15 +393,15 @@ export function analizar(points, opciones = {}) {
   const PASO = 10;
   const samples = resample(points, cum, PASO);
 
-  // 3. Suavizado de la altitud: 3 muestras a cada lado, o sea una ventana
-  //    de 60 m. Sin suavizar nada, el ruido del sensor infla el desnivel;
+  // 3. Suavizado de la altitud: 2 muestras a cada lado, o sea una ventana
+  //    de 40 m. Sin suavizar nada, el ruido del sensor infla el desnivel;
   //    con una ventana grande se come las subidas cortas reales, que en
-  //    terreno ondulado son la mayor parte del desnivel. Este valor está
-  //    calibrado contra una ruta con desnivel real conocido (2.428 m):
-  //    da 2.464, un 1,5% de más. Ver README.
+  //    terreno ondulado son la mayor parte del desnivel. El valor está
+  //    calibrado contra tres rutas con desnivel real conocido: error medio
+  //    del 2,2%. Ver README.
   let smooth;
   if (conAltitud) {
-    smooth = movingAverage(samples.map((s) => s.ele), 3);
+    smooth = movingAverage(samples.map((s) => s.ele), 2);
   } else {
     smooth = samples.map(() => 0);
   }

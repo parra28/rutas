@@ -252,19 +252,19 @@ métricas, incluido el tiempo real en movimiento.
    el desnivel; con una ventana grande se comen las subidas cortas reales,
    que en terreno ondulado son la mayor parte del acumulado.
 
-   Ese valor no está puesto a ojo: se eligió comparando contra dos rutas con
-   desnivel real conocido. Con la ventana de 300 m que había antes, el
-   cálculo se quedaba un 21% corto. Con los 60 m actuales:
+   Ese valor no está puesto a ojo: se eligió comparando contra tres rutas
+   con desnivel real conocido. Con la ventana de 300 m que había al
+   principio, el cálculo se quedaba hasta un 21% corto.
 
-   | Ruta | Real | Calculado | Error |
-   |---|---|---|---|
-   | Cuenca Minera | 2.428 m | 2.464 m | +1,5% |
-   | Venta Culebrín | 2.730 m | 2.641 m | −3,3% |
+   | Ventana | Cuenca Minera | Venta Culebrín | Ronquillo | Error medio |
+   |---|---|---|---|---|
+   | ±10 m | +6,5% | −0,7% | +2,0% | 3,1% |
+   | **±20 m** | **+4,2%** | **−1,9%** | **−0,4%** | **2,2%** |
+   | ±30 m | +1,5% | −3,3% | −3,2% | 2,7% |
+   | ±40 m | −1,3% | −4,7% | −5,9% | 4,0% |
 
-   Los errores van en sentidos opuestos, que es lo que cabe esperar cuando
-   el filtro es razonable y lo que queda son diferencias de cada grabación.
-   No hay una ventana que acierte en las dos a la vez: a Cuenca Minera le
-   iría mejor una más grande y a Venta Culebrín una más pequeña.
+   Ninguna ventana acierta en las tres a la vez, porque lo que queda son
+   diferencias de cada grabación. Se usa la de menor error medio.
 
    Por eso, cuando sepas el valor bueno, fíjalo en la ficha:
 
