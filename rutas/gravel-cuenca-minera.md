@@ -5,6 +5,7 @@ provincia: Huelva y Sevilla
 bici: gravel
 dificultad: 4
 fecha: 2025-04-19
+desnivel: 2428
 parking: Aznalcóllar
 video: https://www.instagram.com/reel/DIt3B5xI-kx/
 tags: [gravel, circular, carriles, cuenca minera, aznalcollar, el madrono, nerva]

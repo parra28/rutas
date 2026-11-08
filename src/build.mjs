@@ -114,6 +114,26 @@ async function cargarRutas() {
       const metricas = analizar(points, { bici });
       const original = await stat(rutaGpx);
 
+      // El desnivel se puede forzar desde la ficha cuando se conoce el valor
+      // bueno (el del ciclocomputador, por ejemplo).
+      let desnivelDeclarado = null;
+      if (meta.desnivel !== undefined && meta.desnivel !== "") {
+        const v = Number(meta.desnivel);
+        if (!Number.isFinite(v) || v <= 0) {
+          aviso(`${nombreBase}: "desnivel: ${meta.desnivel}" no es un número de metros, se ignora`);
+        } else {
+          desnivelDeclarado = Math.round(v);
+          const calc = metricas.desnivelPositivo;
+          const dif = Math.abs(calc - desnivelDeclarado) / desnivelDeclarado;
+          if (dif > 0.1) {
+            aviso(
+              `${nombreBase}: el desnivel declarado (${desnivelDeclarado} m) se aleja un ` +
+                `${Math.round(dif * 100)}% del calculado (${calc} m); revisa cuál es el bueno`
+            );
+          }
+        }
+      }
+
       const nombre = String(meta.nombre || nombreGpx || nombreBase).trim();
       const slug = slugify(meta.slug || nombre || nombreBase);
 
@@ -135,6 +155,9 @@ async function cargarRutas() {
 
       rutas.push({
         ...metricas,
+        desnivelPositivo: desnivelDeclarado !== null ? desnivelDeclarado : metricas.desnivelPositivo,
+        desnivelCalculado: metricas.desnivelPositivo,
+        desnivelDeclarado: desnivelDeclarado !== null,
         numPuntos: ligero.puntos,
         puntosOriginales: metricas.numPuntos,
         slug,
@@ -164,6 +187,7 @@ async function cargarRutas() {
       });
       console.log(
         `  + ${nombre}  ${km(metricas.distancia)} km / ${entero(metricas.desnivelPositivo)} m D+  ` +
+          `${desnivelDeclarado !== null ? `[declarado ${entero(desnivelDeclarado)} m] ` : ""}` +
           `(GPX ${pesoLegible(original.size)} -> ${pesoLegible(Buffer.byteLength(ligero.xml))}, ` +
           `${entero(metricas.numPuntos)} -> ${entero(ligero.puntos)} puntos)  -> /ruta/${slug}/`
       );

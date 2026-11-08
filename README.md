@@ -133,10 +133,14 @@ video: https://www.instagram.com/reel/DIt3B5xI-kx/
 ```
 
 Funciona con reels y publicaciones de Instagram y con vídeos y shorts de
-YouTube. La ficha muestra un botón, y **el vídeo no se carga hasta que el
-visitante lo pulsa**: así la página no pide nada a Instagram ni a YouTube
-solo por abrirla, y carga más rápido. Debajo queda siempre un enlace para
-abrirlo en la plataforma.
+YouTube. El vídeo sale centrado, y **no se carga hasta que el visitante
+pulsa el botón**: así la página no pide nada a Instagram ni a YouTube solo
+por abrirla, y carga más rápido. Debajo queda siempre un enlace para abrirlo
+en la plataforma.
+
+Los vídeos de YouTube arrancan solos y en silencio al pulsar. Los de
+Instagram no: su incrustado no admite ningún parámetro de reproducción
+automática, así que hay que darle al play dentro del propio recuadro.
 
 ### 6. Sube los cambios
 
@@ -172,6 +176,7 @@ se usan en el perfil y en los filtros.
 | `bici` | recomendado | `carretera`, `gravel`, `btt` o `cicloturismo`. |
 | `dificultad` | recomendado | Del 1 al 5. Tu criterio, no el del programa. |
 | `fecha` | no | `AAAA-MM-DD`. Ordena la portada por "más recientes". |
+| `desnivel` | no | Desnivel positivo real en metros, si no te fías del calculado. |
 | `parking` | no | Dónde dejar el coche. |
 | `epoca` | no | Mejor época del año. |
 | `superficie` | no | Reparto de asfalto, pista y sendero. |
@@ -241,11 +246,26 @@ métricas, incluido el tiempo real en movimiento.
 
 ### Dos detalles del cálculo, por transparencia
 
-1. **El desnivel se suaviza.** El track se remuestrea cada 10 m y la altitud
-   pasa por una media móvil de 300 m antes de sumar las subidas. Sin eso, el
-   ruido del GPS infla el desnivel positivo. Por el mismo motivo tus números
-   pueden no coincidir con los de Strava o Wikiloc: cada plataforma usa su
-   propio filtro.
+1. **El desnivel se suaviza, y el filtro está calibrado.** El track se
+   remuestrea cada 10 m y la altitud pasa por una media móvil de **60 m**
+   antes de sumar las subidas. Sin suavizar nada, el ruido del sensor infla
+   el desnivel; con una ventana grande se comen las subidas cortas reales,
+   que en terreno ondulado son la mayor parte del acumulado.
+
+   Ese valor no está puesto a ojo: se eligió comparando contra una ruta con
+   desnivel real conocido (2.428 m). Sin filtro salían 2.665 m; con una
+   ventana de 300 m, 1.915 m; con los 60 m actuales, 2.464 m, un 1,5% de más.
+
+   Aun así, cada plataforma usa su propio filtro, así que tus números pueden
+   no coincidir exactamente con los de Strava. Cuando sepas el valor bueno,
+   fíjalo en la ficha:
+
+   ```yaml
+   desnivel: 2428
+   ```
+
+   Ese número manda sobre el calculado, y el build avisa si los dos se
+   separan más de un 10%.
 2. **El tiempo estimado es orientativo.** Sale de una velocidad base según el
    tipo de bici, penalizada por la pendiente de cada tramo. Está calibrado con
    una sola ruta real, así que tómalo como una aproximación. Si el GPX trae

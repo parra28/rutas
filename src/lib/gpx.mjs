@@ -393,11 +393,15 @@ export function analizar(points, opciones = {}) {
   const PASO = 10;
   const samples = resample(points, cum, PASO);
 
-  // 3. suavizado de la altitud: 15 muestras a cada lado = ventana de 300 m.
-  //    Sin esto el ruido del GPS infla el desnivel positivo hasta un 40%.
+  // 3. Suavizado de la altitud: 3 muestras a cada lado, o sea una ventana
+  //    de 60 m. Sin suavizar nada, el ruido del sensor infla el desnivel;
+  //    con una ventana grande se come las subidas cortas reales, que en
+  //    terreno ondulado son la mayor parte del desnivel. Este valor está
+  //    calibrado contra una ruta con desnivel real conocido (2.428 m):
+  //    da 2.464, un 1,5% de más. Ver README.
   let smooth;
   if (conAltitud) {
-    smooth = movingAverage(samples.map((s) => s.ele), 15);
+    smooth = movingAverage(samples.map((s) => s.ele), 3);
   } else {
     smooth = samples.map(() => 0);
   }

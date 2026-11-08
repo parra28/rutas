@@ -20,6 +20,8 @@ export function analizarVideo(url) {
     return {
       plataforma: "Instagram",
       enlace: `https://www.instagram.com/${tipo}/${m[2]}/`,
+      // Instagram no ofrece ningún parámetro de autoplay en su incrustado:
+      // su reproductor arranca con un toque dentro del propio iframe.
       incrustar: `https://www.instagram.com/${tipo}/${m[2]}/embed/`,
       vertical: true,
     };
@@ -31,7 +33,9 @@ export function analizarVideo(url) {
     return {
       plataforma: "YouTube",
       enlace: `https://www.youtube.com/watch?v=${m[1]}`,
-      incrustar: `https://www.youtube-nocookie.com/embed/${m[1]}`,
+      // Como el iframe solo se crea al pulsar, el navegador acepta el
+      // autoplay: hay gesto del usuario. Silenciado, por si acaso.
+      incrustar: `https://www.youtube-nocookie.com/embed/${m[1]}?autoplay=1&mute=1&rel=0`,
       vertical: corto,
     };
   }

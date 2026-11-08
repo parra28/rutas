@@ -506,7 +506,7 @@ h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.06em; color
 
 /* --------------------------------------------------------------- video */
 
-.video { max-width: 420px; }
+.video { max-width: 420px; margin-inline: auto; }
 .video-marco {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -535,7 +535,7 @@ h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.06em; color
 }
 .video-texto { display: flex; flex-direction: column; gap: 2px; font-weight: 600; color: var(--ink); }
 .video-texto small { font-weight: 400; font-size: 0.75rem; color: var(--ink-mudo); }
-.video-enlace { margin: 8px 0 0; font-size: 0.82rem; }
+.video-enlace { margin: 10px 0 0; font-size: 0.82rem; text-align: center; }
 
 /* --------------------------------------------------------------- fotos */
 
