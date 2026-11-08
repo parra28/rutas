@@ -1,0 +1,11 @@
+{
+  "name": "rutometro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rutometro - catalogo estatico de rutas en bici con mapa, altimetria y descarga GPX",
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "dev": "BASE=/ node src/build.mjs && node src/serve.mjs"
+  }
+}
