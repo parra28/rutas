@@ -7,14 +7,13 @@ dificultad: 4
 fecha: 2025-11-10
 parking: Zona de la Venta del Culebrín, junto al cruce de la A-66 con la N-630
 tags: [gravel, circular, sierra morena, via de la plata]
-# Puntos de interés: quita las almohadillas y pon los tuyos.
 # Formato:  kilómetro | tipo | lo que quieras contar
-# Tipos: parking, fuente, desayuno, tienda, taller, mirador, peligro, cruce, foto, otro
-# puntos:
-#   - 0 | parking | Dónde dejas el coche
-#   - 14,2 | fuente | Fuente del pueblo, potable
-#   - 38 | desayuno | Bar donde paras a desayunar
-#   - 68 | peligro | Tramo con gravilla suelta
+# Tipos: parking, fuente, desayuno, comida, tienda, taller, mirador, peligro, cruce, foto, otro
+puntos:
+  - 0 | parking | Aparcamiento de salida
+  - 31 | desayuno | Parada para desayunar
+  - 61,2 | tienda | Para comprar agua
+  - 114 | comida | Comida en la Venta el Culebrín, al terminar
 ---
 
 ## Cómo es
@@ -33,4 +32,5 @@ máximas rondan el 12%, y las bajadas son del mismo orden.
 
 - Es una ruta de día completo: el tiempo real en movimiento fue de algo más de
   cinco horas, sin contar paradas.
-- Hay que plantearse bien el avituallamiento por la longitud y por la zona.
+- El avituallamiento está resuelto en dos puntos: el desayuno hacia el km 31 y
+  la tienda del km 61, que es donde conviene cargar agua para el tramo final.

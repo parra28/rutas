@@ -82,7 +82,8 @@ puntos:
   |---|---|---|
   | `parking` | Dónde dejar el coche | `aparcamiento`, `salida` |
   | `fuente` | Agua potable | `agua` |
-  | `desayuno` | Bar, café, avituallamiento | `bar`, `comida`, `restaurante` |
+  | `desayuno` | Bar, café, avituallamiento | `bar`, `cafe`, `cafeteria` |
+| `comida` | Parada a comer | `restaurante`, `almuerzo`, `comer` |
   | `tienda` | Supermercado, panadería | `super`, `supermercado` |
   | `taller` | Taller de bicis | `mecanico`, `bici` |
   | `mirador` | Vistas, cima | `vistas`, `cima` |

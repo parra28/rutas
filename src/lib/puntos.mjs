@@ -22,8 +22,12 @@ export const TIPOS_PUNTO = {
     icono: '<path d="M12 3.5s5.5 6.6 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10.1 12 3.5 12 3.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
   },
   desayuno: {
-    etiqueta: "Bar o desayuno",
+    etiqueta: "Desayuno o bar",
     icono: '<path d="M4.5 7.5h11v5.5a5.5 5.5 0 0 1-11 0zM15.5 9H17a2.2 2.2 0 0 1 0 4.4h-1.5M3.5 20.5h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  comida: {
+    etiqueta: "Comida",
+    icono: '<path d="M6.5 3.5v7.5a2.5 2.5 0 0 0 5 0V3.5M9 3.5V11M17.5 3.5c-1.4 1-2 2.6-2 4.3 0 1.4.7 2.2 2 2.2zM17.5 10v10.5M9 13.5v7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
   },
   tienda: {
     etiqueta: "Tienda",
@@ -62,9 +66,12 @@ const ALIAS = {
   fuentes: "fuente",
   bar: "desayuno",
   cafe: "desayuno",
-  comida: "desayuno",
-  restaurante: "desayuno",
+  cafeteria: "desayuno",
   avituallamiento: "desayuno",
+  restaurante: "comida",
+  almuerzo: "comida",
+  cena: "comida",
+  comer: "comida",
   supermercado: "tienda",
   super: "tienda",
   panaderia: "tienda",
