@@ -113,19 +113,31 @@ export function markdown(texto) {
       }
       continue;
     }
-    if (lineas.every((l) => /^\s*[-*]\s+/.test(l))) {
-      const items = lineas
-        .map((l) => `<li>${enLinea(l.replace(/^\s*[-*]\s+/, ""))}</li>`)
-        .join("");
-      html.push(`<ul>${items}</ul>`);
-      continue;
+    // Listas. Un elemento puede ocupar varias lineas: las que no empiezan
+    // por marca se juntan con el elemento anterior.
+    const agrupar = (marca) => {
+      const items = [];
+      for (const l of lineas) {
+        if (marca.test(l)) items.push(l.replace(marca, ""));
+        else if (items.length) items[items.length - 1] += " " + l.trim();
+        else return null;
+      }
+      return items;
+    };
+
+    if (/^\s*[-*]\s+/.test(lineas[0])) {
+      const items = agrupar(/^\s*[-*]\s+/);
+      if (items) {
+        html.push(`<ul>${items.map((x) => `<li>${enLinea(x)}</li>`).join("")}</ul>`);
+        continue;
+      }
     }
-    if (lineas.every((l) => /^\s*\d+[.)]\s+/.test(l))) {
-      const items = lineas
-        .map((l) => `<li>${enLinea(l.replace(/^\s*\d+[.)]\s+/, ""))}</li>`)
-        .join("");
-      html.push(`<ol>${items}</ol>`);
-      continue;
+    if (/^\s*\d+[.)]\s+/.test(lineas[0])) {
+      const items = agrupar(/^\s*\d+[.)]\s+/);
+      if (items) {
+        html.push(`<ol>${items.map((x) => `<li>${enLinea(x)}</li>`).join("")}</ol>`);
+        continue;
+      }
     }
     if (lineas.every((l) => /^\s*&gt;\s?/.test(l))) {
       html.push(

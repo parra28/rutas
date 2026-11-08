@@ -13,6 +13,7 @@ import path from "node:path";
 
 import { parseGpx, analizar, gpxLigero, crearLocalizador } from "./lib/gpx.mjs";
 import { resolverPuntos, puntosDelGpx } from "./lib/puntos.mjs";
+import { resolverTerreno } from "./lib/terreno.mjs";
 import { parseFicha, markdown, slugify, esc } from "./lib/content.mjs";
 import { miniatura } from "./lib/thumb.mjs";
 import { paginaIndice, paginaRuta } from "./lib/render.mjs";
@@ -133,6 +134,10 @@ async function cargarRutas() {
       ).concat(puntosDelGpx(waypoints, localizador));
       puntos.sort((a, b) => a.metros - b.metros);
 
+      const terreno = resolverTerreno(meta.terreno, localizador, (m) =>
+        aviso(`${nombreBase}: ${m}`)
+      );
+
       rutas.push({
         ...metricas,
         numPuntos: ligero.puntos,
@@ -155,6 +160,7 @@ async function cargarRutas() {
         descripcionHtml: markdown(cuerpo),
         waypoints,
         puntos,
+        terreno,
         fotos,
         pesoGpx: pesoLegible(Buffer.byteLength(ligero.xml)),
         pesoOriginal: pesoLegible(original.size),
@@ -271,6 +277,14 @@ async function generar() {
       (totalFotos ? `, ${totalFotos} foto(s)` : "") +
       (totalPuntos ? `, ${totalPuntos} punto(s) de interés` : "")
   );
+  for (const r of rutas) {
+    if (r.terreno.reparto.length) {
+      console.log(
+        `  terreno de ${r.nombre}: ` +
+          r.terreno.reparto.map((x) => `${x.porcentaje}% ${x.etiqueta.toLowerCase()}`).join(", ")
+      );
+    }
+  }
   if (avisos.length) console.log(`  ${avisos.length} aviso(s)`);
   if (errores.length) {
     console.error(`\n  ${errores.length} ruta(s) no se han podido procesar:`);

@@ -301,6 +301,24 @@ export function crearLocalizador(points) {
         ele: a.ele === null || b.ele === null ? null : a.ele + (b.ele - a.ele) * t,
       };
     },
+    /**
+     * Trozo del trazado entre dos distancias, con los extremos interpolados.
+     * Sirve para pintar en el mapa cada tramo de terreno por separado.
+     */
+    tramo(metrosA, metrosB) {
+      const a = Math.max(0, Math.min(total, Math.min(metrosA, metrosB)));
+      const b = Math.max(0, Math.min(total, Math.max(metrosA, metrosB)));
+      const salida = [];
+      const pa = this.porDistancia(a);
+      salida.push({ lat: pa.lat, lon: pa.lon, ele: pa.ele });
+      for (let i = 0; i < points.length; i++) {
+        if (cum[i] > a && cum[i] < b) salida.push(points[i]);
+      }
+      const pb = this.porDistancia(b);
+      salida.push({ lat: pb.lat, lon: pb.lon, ele: pb.ele });
+      return salida;
+    },
+
     /** Punto de la ruta mas cercano a unas coordenadas. */
     porCoordenadas(lat, lon) {
       let mejor = 0;
@@ -490,6 +508,14 @@ export function analizar(points, opciones = {}) {
   }
 
   const tMov = conTiempos ? movingTime(points, cum) : null;
+  let tTotal = null;
+  if (conTiempos) {
+    const conHora = points.filter((p) => p.time);
+    if (conHora.length > 1) {
+      const d = (conHora[conHora.length - 1].time - conHora[0].time) / 1000;
+      if (d > 0) tTotal = Math.round(d);
+    }
+  }
   const tEst = estimateTime(samples, grades, opciones.bici);
 
   return {
@@ -505,6 +531,7 @@ export function analizar(points, opciones = {}) {
     tipoRecorrido,
     conAltitud,
     tiempoMovimiento: tMov,
+    tiempoTotal: tTotal,
     tiempoEstimado: tEst,
     inicio: { lat: points[0].lat, lon: points[0].lon },
     fin: { lat: points[points.length - 1].lat, lon: points[points.length - 1].lon },

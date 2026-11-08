@@ -7,7 +7,13 @@ dificultad: 4
 fecha: 2025-11-10
 parking: Zona de la Venta del Culebrín, junto al cruce de la A-66 con la N-630
 tags: [gravel, circular, sierra morena, via de la plata]
-# Formato:  kilómetro | tipo | lo que quieras contar
+# Tipo de firme por tramos: kmInicio-kmFin | asfalto, pista, sendero u otro.
+# Quita las almohadillas y pon los tramos reales de la ruta.
+# terreno:
+#   - 0-9,5 | asfalto
+#   - 9,5-34 | pista
+#   - 34-38 | sendero
+# Puntos de interés: kilómetro | tipo | lo que quieras contar.
 # Tipos: parking, fuente, desayuno, comida, tienda, taller, mirador, peligro, cruce, foto, otro
 puntos:
   - 0 | parking | Aparcamiento de salida

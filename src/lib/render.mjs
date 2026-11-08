@@ -1,9 +1,13 @@
-// Rutometro - plantillas HTML. Todo se genera en el build; el navegador
-// solo recibe HTML plano mas un poco de JavaScript para filtrar e interactuar.
+// Rutometro - plantillas HTML.
+//
+// Estructura inspirada en las paginas de actividad de Strava: las cifras
+// primero, el mapa grande como protagonista, el perfil pegado debajo y el
+// resto del contenido en bloques apilados.
 
 import { esc, markdown } from "./content.mjs";
 import { miniatura } from "./thumb.mjs";
 import { TIPOS_PUNTO } from "./puntos.mjs";
+import { TIPOS_TERRENO } from "./terreno.mjs";
 import {
   TIPOS_BICI,
   TIPOS_RECORRIDO,
@@ -19,9 +23,12 @@ const SITIO = "Rutómetro";
 const LEMA = "Mis rutas favoritas en bici, listas para descargar";
 const HOST = "https://parra28.github.io";
 
-// Tramos de pendiente: escala divergente (bajada azul / llano gris / subida roja).
-// La luminosidad acompana a la magnitud, asi que tambien se lee sin distinguir
-// los colores.
+const LEAFLET = `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>`;
+
+// Tramos de pendiente: escala divergente (bajada azul / llano gris / subida
+// roja). La luminosidad acompana a la magnitud, asi que tambien se lee sin
+// distinguir los colores.
 export const TRAMOS_PENDIENTE = [
   { clase: "d4", hasta: -8, etiqueta: "≤ -8%" },
   { clase: "d3", hasta: -4, etiqueta: "-8 a -4%" },
@@ -32,6 +39,11 @@ export const TRAMOS_PENDIENTE = [
   { clase: "u3", hasta: 10, etiqueta: "7 a 10%" },
   { clase: "u4", hasta: Infinity, etiqueta: "> 10%" },
 ];
+
+export function tramoDe(g) {
+  for (const t of TRAMOS_PENDIENTE) if (g < t.hasta) return t.clase;
+  return "u4";
+}
 
 /** Trazado muy reducido para las miniaturas: no necesitan mas de ~150 puntos. */
 function trazadoMini(trazado, maximo = 150) {
@@ -46,7 +58,6 @@ function trazadoMini(trazado, maximo = 150) {
   return out;
 }
 
-/** Datos de los trazados que necesitan los minimapas de las tarjetas. */
 function datosMapas(rutas) {
   const datos = {};
   for (const r of rutas) datos[r.slug] = trazadoMini(r.trazado);
@@ -56,20 +67,12 @@ function datosMapas(rutas) {
   )}</script>`;
 }
 
-const LEAFLET = `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>`;
-
-export function tramoDe(g) {
-  for (const t of TRAMOS_PENDIENTE) if (g < t.hasta) return t.clase;
-  return "u4";
-}
-
 // ------------------------------------------------------------------- esqueleto
 
-function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", clase = "", imagen = "" }) {
+function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", imagen = "" }) {
   const tituloCompleto = titulo === SITIO ? `${SITIO} · ${LEMA}` : `${titulo} · ${SITIO}`;
   return `<!doctype html>
-<html lang="es" class="${clase}">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -79,12 +82,11 @@ function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", clas
 <meta property="og:description" content="${esc(descripcion)}">
 <meta property="og:type" content="website">
 ${imagen ? `<meta property="og:image" content="${esc(imagen)}">\n<meta name="twitter:card" content="summary_large_image">` : ""}
-<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="${base}assets/styles.css">
 <link rel="icon" href="${base}assets/icono.svg" type="image/svg+xml">
 <script>
-// Tema antes de pintar, para que no parpadee.
 try {
   var t = localStorage.getItem("rutometro-tema");
   if (t) document.documentElement.dataset.tema = t;
@@ -122,7 +124,7 @@ ${scripts}
 `;
 }
 
-// ------------------------------------------------------------------- tarjetas
+// ------------------------------------------------------------------ piezas
 
 function insignias(r) {
   const b = TIPOS_BICI[r.bici];
@@ -144,8 +146,69 @@ function puntosDificultad(n) {
   return `<span class="dificultad" title="Dificultad: ${esc(DIFICULTADES[n] || n)}"><span class="visual" aria-hidden="true">${puntos}</span><span class="texto">${esc(DIFICULTADES[n] || n)}</span></span>`;
 }
 
-function tarjeta(r, base) {
-  return `<article class="tarjeta"
+/** Tiempo que se muestra: el real si el GPX lo trae, si no el estimado. */
+function tiempos(r) {
+  if (r.tiempoMovimiento) {
+    return [
+      { etiqueta: "En movimiento", valor: duracion(r.tiempoMovimiento) },
+      { etiqueta: "Tiempo total", valor: duracion(r.tiempoTotal) || "—" },
+    ];
+  }
+  return [{ etiqueta: "Tiempo estimado", valor: duracion(r.tiempoEstimado), nota: "estimado" }];
+}
+
+function cifra(etiqueta, valor, unidad, nota) {
+  if (valor === null || valor === undefined || valor === "") return "";
+  return `<div class="cifra">
+  <span class="cifra-valor">${valor}${unidad ? `<small>${unidad}</small>` : ""}</span>
+  <span class="cifra-etiqueta">${esc(etiqueta)}</span>
+  ${nota ? `<span class="cifra-nota">${esc(nota)}</span>` : ""}
+</div>`;
+}
+
+/** Las cinco cifras de la ficha. */
+function franjaCifras(r) {
+  const t = tiempos(r);
+  return `<dl class="cifras">
+  ${cifra("Distancia", km(r.distancia), "km")}
+  ${cifra("Desnivel +", entero(r.desnivelPositivo), "m")}
+  ${t.map((x) => cifra(x.etiqueta, x.valor, "", x.nota)).join("")}
+  ${cifra("Recorrido", esc(TIPOS_RECORRIDO[r.tipoRecorrido] || r.tipoRecorrido))}
+</dl>`;
+}
+
+/** Barra de porcentajes del firme. */
+function barraTerreno(reparto) {
+  if (!reparto || reparto.length === 0) return "";
+  const segmentos = reparto
+    .map(
+      (x) =>
+        `<span class="terreno-trozo t-${x.tipo}" style="width:${x.porcentaje}%" title="${esc(
+          x.etiqueta
+        )}: ${decimal(x.porcentaje)}%"></span>`
+    )
+    .join("");
+  const leyenda = reparto
+    .map(
+      (x) =>
+        `<li class="terreno-item"><span class="terreno-color t-${x.tipo}" aria-hidden="true"></span>
+      <b>${decimal(x.porcentaje)}%</b> ${esc(x.etiqueta.toLowerCase())}
+      <span class="terreno-km">${km(x.metros)} km</span></li>`
+    )
+    .join("");
+  return `<div class="terreno">
+  <div class="terreno-barra" role="img" aria-label="Reparto del firme: ${reparto
+    .map((x) => `${decimal(x.porcentaje)}% ${x.etiqueta.toLowerCase()}`)
+    .join(", ")}">${segmentos}</div>
+  <ul class="terreno-leyenda">${leyenda}</ul>
+</div>`;
+}
+
+// --------------------------------------------------------------- tarjetas
+
+function tarjeta(r, base, { compacta = false } = {}) {
+  const t = tiempos(r);
+  return `<article class="tarjeta${compacta ? " compacta" : ""}"
   data-nombre="${esc(r.nombre.toLowerCase())}"
   data-zona="${esc(r.zona || "")}"
   data-busqueda="${esc([r.nombre, r.zona, r.provincia, (r.tags || []).join(" ")].filter(Boolean).join(" ").toLowerCase())}"
@@ -159,22 +222,28 @@ function tarjeta(r, base) {
       ${r.miniatura}
       ${
         r.fotos && r.fotos.length
-          ? `<span class="distintivo-fotos"><svg aria-hidden="true" viewBox="0 0 24 24" width="13" height="13"><path d="M3 7h3l2-2h8l2 2h3v12H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>${
-              r.fotos.length
-            }</span>`
+          ? `<span class="distintivo-fotos"><svg aria-hidden="true" viewBox="0 0 24 24" width="13" height="13"><path d="M3 7h3l2-2h8l2 2h3v12H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>${r.fotos.length}</span>`
           : ""
       }
     </div>
     <div class="tarjeta-cuerpo">
-      <h2 class="tarjeta-titulo">${esc(r.nombre)}</h2>
-      ${r.zona ? `<p class="tarjeta-zona">${esc(r.zona)}</p>` : ""}
-      <div class="tarjeta-insignias">${insignias(r)}</div>
-      <dl class="tarjeta-datos">
-        <div><dt>Distancia</dt><dd>${km(r.distancia)} km</dd></div>
-        <div><dt>Desnivel +</dt><dd>${entero(r.desnivelPositivo)} m</dd></div>
-        <div><dt>Dureza</dt><dd>${entero(r.desnivelPorKm)} m/km</dd></div>
+      <div class="tarjeta-cabeza">
+        <h2 class="tarjeta-titulo">${esc(r.nombre)}</h2>
+        ${r.zona ? `<p class="tarjeta-zona">${esc(r.zona)}</p>` : ""}
+      </div>
+      <div class="tarjeta-insignias">${insignias(r)} ${puntosDificultad(r.dificultad)}</div>
+      <dl class="cifras compactas">
+        ${cifra("Distancia", km(r.distancia), "km")}
+        ${cifra("Desnivel +", entero(r.desnivelPositivo), "m")}
+        ${cifra(t[0].etiqueta, t[0].valor)}
       </dl>
-      ${puntosDificultad(r.dificultad)}
+      ${
+        r.terreno && r.terreno.reparto.length
+          ? `<div class="terreno-barra fina" aria-hidden="true">${r.terreno.reparto
+              .map((x) => `<span class="terreno-trozo t-${x.tipo}" style="width:${x.porcentaje}%"></span>`)
+              .join("")}</div>`
+          : ""
+      }
     </div>
   </a>
 </article>`;
@@ -192,10 +261,10 @@ export function paginaIndice({ base, rutas, zonas }) {
   <div class="contenedor">
     <h1>${SITIO}</h1>
     <p class="lema">${LEMA}</p>
-    <dl class="resumen">
-      <div><dt>Rutas</dt><dd>${entero(rutas.length)}</dd></div>
-      <div><dt>Kilómetros</dt><dd>${entero(totalKm / 1000)}</dd></div>
-      <div><dt>Desnivel acumulado</dt><dd>${entero(totalD)} m</dd></div>
+    <dl class="cifras portada-cifras">
+      ${cifra("Rutas", entero(rutas.length))}
+      ${cifra("Kilómetros", entero(totalKm / 1000))}
+      ${cifra("Desnivel acumulado", entero(totalD), "m")}
     </dl>
   </div>
 </section>
@@ -252,7 +321,7 @@ export function paginaIndice({ base, rutas, zonas }) {
           <option value="dist-desc">Más distancia</option>
           <option value="dist-asc">Menos distancia</option>
           <option value="dplus-desc">Más desnivel</option>
-          <option value="dureza-desc">Más dureza (m/km)</option>
+          <option value="dureza-desc">Más dureza</option>
           <option value="nombre">Nombre</option>
         </select>
       </div>
@@ -273,7 +342,7 @@ export function paginaIndice({ base, rutas, zonas }) {
 </section>
 
 <section class="contenedor">
-  <div class="rejilla" id="rejilla">
+  <div class="feed" id="rejilla">
     ${rutas.map((r) => tarjeta(r, base)).join("\n")}
   </div>
   <p class="vacio" id="vacio" hidden>Ninguna ruta coincide con los filtros. <button type="button" id="limpiar">Quitar filtros</button></p>
@@ -295,16 +364,11 @@ ${datosMapas(rutas)}
 
 // ------------------------------------------------------------- perfil (SVG)
 
-/**
- * Perfil de altimetria en SVG, generado en el build.
- * Una sola serie (la altitud), con el borde superior coloreado por pendiente.
- * El JavaScript solo le anade la cruz y el globo al pasar el raton.
- */
-function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
+function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 230 } = {}) {
   const padIzq = 46;
   const padDer = 12;
   const padArr = 14;
-  const padAba = 28;
+  const padAba = 26;
   const w = ancho - padIzq - padDer;
   const h = alto - padArr - padAba;
 
@@ -314,26 +378,23 @@ function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
   let eMin = Math.min(...eles);
   let eMax = Math.max(...eles);
   const rango = Math.max(30, eMax - eMin);
-  // margen del 12% arriba y abajo, redondeado a 10 m
   eMin = Math.floor((eMin - rango * 0.12) / 10) * 10;
   eMax = Math.ceil((eMax + rango * 0.12) / 10) * 10;
 
   const X = (d) => padIzq + (d / dTotal) * w;
   const Y = (e) => padArr + h - ((e - eMin) / (eMax - eMin)) * h;
 
-  // area rellena
   const area = [`M${X(0).toFixed(1)} ${(padArr + h).toFixed(1)}`];
   for (const p of perfil) area.push(`L${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`);
   area.push(`L${X(dTotal).toFixed(1)} ${(padArr + h).toFixed(1)}Z`);
 
-  // linea superior por tramos de pendiente
   const lineas = [];
   let actual = null;
   for (let i = 0; i < perfil.length; i++) {
     const clase = tramoDe(perfil[i][2]);
     const punto = `${X(perfil[i][0]).toFixed(1)},${Y(perfil[i][1]).toFixed(1)}`;
     if (!actual || actual.clase !== clase) {
-      if (actual) actual.puntos.push(punto); // empalme sin huecos
+      if (actual) actual.puntos.push(punto);
       actual = { clase, puntos: [punto] };
       lineas.push(actual);
     } else {
@@ -341,8 +402,6 @@ function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
     }
   }
 
-  // Las marcas de los ejes van en HTML sobre el SVG: al estirarse el SVG
-  // (preserveAspectRatio="none") el texto se deformaria.
   const pc = (v, total) => ((v / total) * 100).toFixed(3);
 
   const rejilla = [];
@@ -362,12 +421,9 @@ function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
   const pasoKm = kmTotal > 120 ? 20 : kmTotal > 60 ? 10 : kmTotal > 25 ? 5 : kmTotal > 10 ? 2 : 1;
   const marcasX = [];
   for (let k = 0; k <= kmTotal; k += pasoKm) {
-    marcasX.push(
-      `<span class="marca-x" style="left:${pc(X(k * 1000), ancho)}%">${entero(k)}</span>`
-    );
+    marcasX.push(`<span class="marca-x" style="left:${pc(X(k * 1000), ancho)}%">${entero(k)}</span>`);
   }
 
-  // marcas de los puntos de interes sobre el perfil
   const marcasPunto = puntos
     .map((pt) => {
       const x = X(Math.min(pt.metros, dTotal));
@@ -377,17 +433,13 @@ function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
       }
       const y = Y(cerca[1]);
       const titulo = `km ${decimal(pt.km)} · ${pt.etiqueta}${pt.texto ? `: ${pt.texto}` : ""}`;
-      return `<g class="perfil-punto-interes${pt.aviso ? " es-aviso" : ""}"><title>${esc(
-        titulo
-      )}</title><line x1="${x.toFixed(1)}" y1="${(padArr + h).toFixed(1)}" x2="${x.toFixed(
-        1
-      )}" y2="${y.toFixed(1)}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6"/></g>`;
+      return `<g class="perfil-punto-interes${pt.aviso ? " es-aviso" : ""}"><title>${esc(titulo)}</title><line x1="${x.toFixed(1)}" y1="${(padArr + h).toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6"/></g>`;
     })
     .join("");
 
   return `<div class="perfil-caja">
 <svg id="perfil" class="perfil-svg" viewBox="0 0 ${ancho} ${alto}" preserveAspectRatio="none"
-  role="img" aria-label="Perfil de altimetría de la ruta: de ${entero(eMin)} a ${entero(eMax)} metros a lo largo de ${decimal(dTotal / 1000)} kilómetros"
+  role="img" aria-label="Perfil de altimetría: de ${entero(eMin)} a ${entero(eMax)} metros a lo largo de ${decimal(dTotal / 1000)} kilómetros"
   data-dtotal="${dTotal}" data-emin="${eMin}" data-emax="${eMax}"
   data-padizq="${padIzq}" data-padder="${padDer}" data-padarr="${padArr}" data-padaba="${padAba}">
   <g class="rejilla-perfil">${rejilla.join("")}</g>
@@ -408,29 +460,17 @@ function leyendaPendiente() {
   return `<div class="leyenda" aria-label="Escala de pendiente">
   ${TRAMOS_PENDIENTE.map(
     (t) =>
-      `<span class="leyenda-item"><span class="leyenda-color g-bg-${t.clase}" aria-hidden="true"></span>${esc(
-        t.etiqueta
-      )}</span>`
+      `<span class="leyenda-item"><span class="leyenda-color g-bg-${t.clase}" aria-hidden="true"></span>${esc(t.etiqueta)}</span>`
   ).join("")}
 </div>`;
 }
 
 // ------------------------------------------------------------- ficha de ruta
 
-function dato(etiqueta, valor, nota) {
-  if (valor === null || valor === undefined || valor === "") return "";
-  return `<div class="dato"><dt>${esc(etiqueta)}</dt><dd>${valor}${
-    nota ? `<span class="nota">${esc(nota)}</span>` : ""
-  }</dd></div>`;
-}
-
 export function paginaRuta({ base, r, otras }) {
-  const tiempo = r.tiempoMovimiento
-    ? { valor: duracion(r.tiempoMovimiento), nota: "real, en movimiento" }
-    : { valor: duracion(r.tiempoEstimado), nota: "estimado" };
-
-  const visor = (r.fotos && r.fotos.length)
-    ? `<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  const visor =
+    r.fotos && r.fotos.length
+      ? `<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-label="Foto ampliada">
   <button type="button" class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&times;</button>
   <button type="button" class="visor-nav visor-antes" id="visor-antes" aria-label="Foto anterior">&#8249;</button>
   <figure class="visor-figura">
@@ -439,35 +479,24 @@ export function paginaRuta({ base, r, otras }) {
   </figure>
   <button type="button" class="visor-nav visor-despues" id="visor-despues" aria-label="Foto siguiente">&#8250;</button>
 </div>`
-    : "";
-
-  const stats = `
-<dl class="datos">
-  ${dato("Distancia", `${km(r.distancia)} <small>km</small>`)}
-  ${dato("Desnivel +", `${entero(r.desnivelPositivo)} <small>m</small>`)}
-  ${dato("Desnivel −", `${entero(r.desnivelNegativo)} <small>m</small>`)}
-  ${r.conAltitud ? dato("Altitud máxima", `${entero(r.altitudMaxima)} <small>m</small>`) : ""}
-  ${r.conAltitud ? dato("Altitud mínima", `${entero(r.altitudMinima)} <small>m</small>`) : ""}
-  ${dato("Dureza", `${entero(r.desnivelPorKm)} <small>m/km</small>`)}
-  ${dato("Pendiente máxima", `${decimal(r.pendienteMaxima)} <small>%</small>`, "en 100 m")}
-  ${dato("Recorrido", esc(TIPOS_RECORRIDO[r.tipoRecorrido] || r.tipoRecorrido))}
-  ${dato("Tiempo", tiempo.valor, tiempo.nota)}
-</dl>`;
+      : "";
 
   const practicos = [
     r.parking ? ["Salida y aparcamiento", esc(r.parking)] : null,
     r.epoca ? ["Mejor época", esc(r.epoca)] : null,
-    r.superficie ? ["Superficie", esc(r.superficie)] : null,
     r.agua ? ["Agua", esc(r.agua)] : null,
+    r.superficie && !(r.terreno && r.terreno.reparto.length) ? ["Superficie", esc(r.superficie)] : null,
     r.fecha ? ["Ruta registrada el", esc(fechaLarga(r.fecha) || r.fecha)] : null,
   ].filter(Boolean);
+
+  const hayTerreno = r.terreno && r.terreno.reparto.length > 0;
 
   const contenido = `
 <article class="ruta">
   <div class="contenedor">
     <nav class="migas"><a href="${base}">Rutas</a> <span aria-hidden="true">›</span> <span>${esc(r.nombre)}</span></nav>
     <header class="ruta-cabecera">
-      <div>
+      <div class="ruta-titulo">
         <h1>${esc(r.nombre)}</h1>
         <p class="ruta-sub">${[r.zona, r.provincia].filter(Boolean).map(esc).join(" · ")}</p>
         <div class="tarjeta-insignias">${insignias(r)} ${puntosDificultad(r.dificultad)}</div>
@@ -480,31 +509,35 @@ export function paginaRuta({ base, r, otras }) {
         <p class="peso">${esc(r.pesoGpx)} · ${entero(r.numPuntos)} puntos</p>
       </div>
     </header>
-
-    ${stats}
+    ${franjaCifras(r)}
   </div>
 
-  <div class="contenedor">
-    <section class="bloque">
-      <h2>Mapa</h2>
-      <div class="mapa-envoltorio">
-        <div id="mapa" class="mapa" data-slug="${esc(r.slug)}"></div>
-      </div>
-    </section>
-
-    ${
-      r.conAltitud
-        ? `<section class="bloque">
-      <h2>Altimetría</h2>
-      <p class="bloque-nota">Pasa el cursor (o el dedo) por el perfil para ver el punto exacto en el mapa. El color del borde indica la pendiente.</p>
-      <div class="perfil-envoltorio">
+  <div class="contenedor lienzo">
+    <div class="panel">
+      <div id="mapa" class="mapa" data-slug="${esc(r.slug)}"></div>
+      ${
+        r.conAltitud
+          ? `<div class="perfil-envoltorio">
         ${perfilSvg(r.perfil, r.puntos)}
         <div id="perfil-globo" class="globo" hidden></div>
       </div>
-      <div class="perfil-eje-x"><span>kilómetros</span></div>
-      ${leyendaPendiente()}
+      <div class="panel-pie">
+        <span class="panel-nota">Pasa el cursor por el perfil para ver ese punto en el mapa.</span>
+        ${leyendaPendiente()}
+      </div>`
+          : `<div class="panel-pie"><span class="panel-nota">Este GPX no incluye altitudes, así que no hay perfil.</span></div>`
+      }
+    </div>
+  </div>
+
+  <div class="contenedor">
+    ${
+      hayTerreno
+        ? `<section class="bloque">
+      <h2>Terreno</h2>
+      ${barraTerreno(r.terreno.reparto)}
     </section>`
-        : `<section class="bloque"><h2>Altimetría</h2><p class="aviso">Este GPX no incluye datos de altitud, así que no hay perfil ni desniveles fiables.</p></section>`
+        : ""
     }
 
     ${
@@ -528,9 +561,7 @@ export function paginaRuta({ base, r, otras }) {
             (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono
           }</svg></span>
           <span class="punto-km">km ${decimal(pt.km)}</span>
-          <span class="punto-texto"><b>${esc(pt.etiqueta)}</b>${
-              pt.texto ? ` · ${esc(pt.texto)}` : ""
-            }</span>
+          <span class="punto-texto"><b>${esc(pt.etiqueta)}</b>${pt.texto ? ` · ${esc(pt.texto)}` : ""}</span>
         </li>`
           )
           .join("")}
@@ -547,12 +578,10 @@ export function paginaRuta({ base, r, otras }) {
         ${r.fotos
           .map(
             (f, i) =>
-              `<button type="button" class="galeria-item" data-indice="${i}" aria-label="Ampliar foto ${
-                i + 1
-              }${f.pie ? `: ${esc(f.pie)}` : ""}">
-            <img src="${base}fotos/${r.slug}/${encodeURIComponent(f.archivo)}" alt="${esc(
-                f.pie
-              )}" loading="lazy" decoding="async">
+              `<button type="button" class="galeria-item" data-indice="${i}" aria-label="Ampliar foto ${i + 1}${
+                f.pie ? `: ${esc(f.pie)}` : ""
+              }">
+            <img src="${base}fotos/${r.slug}/${encodeURIComponent(f.archivo)}" alt="${esc(f.pie)}" loading="lazy" decoding="async">
             ${f.pie ? `<span class="galeria-pie">${esc(f.pie)}</span>` : ""}
           </button>`
           )
@@ -586,7 +615,7 @@ export function paginaRuta({ base, r, otras }) {
       otras.length
         ? `<section class="bloque">
       <h2>Otras rutas</h2>
-      <div class="rejilla pequena">${otras.map((o) => tarjeta(o, base)).join("")}</div>
+      <div class="feed">${otras.map((o) => tarjeta(o, base, { compacta: true })).join("")}</div>
     </section>`
         : ""
     }
@@ -597,11 +626,11 @@ ${visor}
 
   const datosRuta = JSON.stringify({
     nombre: r.nombre,
-    trazado: r.trazado,
+    trazado: hayTerreno ? [] : r.trazado,
+    tramos: hayTerreno ? r.terreno.tramos.map((t) => ({ tipo: t.tipo, puntos: t.puntos })) : [],
     perfil: r.perfil,
     inicio: r.inicio,
     fin: r.fin,
-    bbox: r.bbox,
     distancia: r.distancia,
     conAltitud: r.conAltitud,
     puntos: (r.puntos || []).map((pt) => ({
@@ -614,6 +643,9 @@ ${visor}
       aviso: pt.aviso,
       icono: (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono,
     })),
+    terreno: hayTerreno
+      ? r.terreno.reparto.map((x) => ({ tipo: x.tipo, etiqueta: x.etiqueta, porcentaje: x.porcentaje }))
+      : [],
   });
 
   return layout({
