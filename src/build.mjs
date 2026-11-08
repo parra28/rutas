@@ -11,7 +11,7 @@ import { readdir, readFile, writeFile, mkdir, cp, rm, stat } from "node:fs/promi
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { parseGpx, analizar } from "./lib/gpx.mjs";
+import { parseGpx, analizar, gpxLigero } from "./lib/gpx.mjs";
 import { parseFicha, markdown, slugify, esc } from "./lib/content.mjs";
 import { miniatura } from "./lib/thumb.mjs";
 import { paginaIndice, paginaRuta } from "./lib/render.mjs";
@@ -75,7 +75,7 @@ async function cargarRutas() {
       }
 
       const metricas = analizar(points, { bici });
-      const info = await stat(rutaGpx);
+      const original = await stat(rutaGpx);
 
       const nombre = String(meta.nombre || nombreGpx || nombreBase).trim();
       const slug = slugify(meta.slug || nombre || nombreBase);
@@ -86,8 +86,12 @@ async function cargarRutas() {
         dificultad = 0;
       }
 
+      const ligero = gpxLigero(points, nombre);
+
       rutas.push({
         ...metricas,
+        numPuntos: ligero.puntos,
+        puntosOriginales: metricas.numPuntos,
         slug,
         nombre,
         ficheroGpx: fichero,
@@ -105,11 +109,15 @@ async function cargarRutas() {
         tipoRecorrido: meta.recorrido || metricas.tipoRecorrido,
         descripcionHtml: markdown(cuerpo),
         waypoints,
-        pesoGpx: pesoLegible(info.size),
+        pesoGpx: pesoLegible(Buffer.byteLength(ligero.xml)),
+        pesoOriginal: pesoLegible(original.size),
+        gpxLigero: ligero.xml,
         miniatura: miniatura(metricas.trazado),
       });
       console.log(
-        `  + ${nombre}  ${km(metricas.distancia)} km / ${entero(metricas.desnivelPositivo)} m D+  -> /ruta/${slug}/`
+        `  + ${nombre}  ${km(metricas.distancia)} km / ${entero(metricas.desnivelPositivo)} m D+  ` +
+          `(GPX ${pesoLegible(original.size)} -> ${pesoLegible(Buffer.byteLength(ligero.xml))}, ` +
+          `${entero(metricas.numPuntos)} -> ${entero(ligero.puntos)} puntos)  -> /ruta/${slug}/`
       );
     } catch (e) {
       errores.push(`${fichero}: ${e.message}`);
@@ -178,7 +186,7 @@ async function generar() {
       path.join(DIR_SALIDA, "ruta", r.slug, "index.html"),
       paginaRuta({ base: BASE, r, otras })
     );
-    await cp(path.join(DIR_RUTAS, r.ficheroGpx), path.join(DIR_SALIDA, "gpx", `${r.slug}.gpx`));
+    await escribir(path.join(DIR_SALIDA, "gpx", `${r.slug}.gpx`), r.gpxLigero);
   }
 
   // assets

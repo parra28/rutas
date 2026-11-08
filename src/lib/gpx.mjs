@@ -249,18 +249,62 @@ function movingTime(points, cum) {
  * cada tramo de 10 m. No pretende ser preciso, solo orientativo.
  */
 function estimateTime(samples, grades, bici) {
-  const flat = { carretera: 24, gravel: 18, btt: 14, cicloturismo: 16 }[bici] || 18;
+  const flat = { carretera: 26, gravel: 22, btt: 16, cicloturismo: 17 }[bici] || 20;
   let seconds = 0;
   for (let i = 1; i < samples.length; i++) {
     const dist = samples[i].d - samples[i - 1].d;
     const g = grades[i] || 0;
     let kmh;
-    if (g > 0) kmh = flat / (1 + g * 0.23);
-    else kmh = Math.min(flat * 1.5, flat * (1 + -g * 0.05));
+    if (g > 0) kmh = flat / (1 + g * 0.17);
+    else kmh = Math.min(flat * 1.65, flat * (1 + -g * 0.085));
     kmh = Math.max(4, kmh);
-    seconds += dist / 1000 / kmh * 3600;
+    seconds += (dist / 1000 / kmh) * 3600;
   }
   return Math.round(seconds);
+}
+
+// ------------------------------------------------- GPX ligero de descarga
+
+function escXml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Construye un GPX de descarga a partir del track original:
+ * solo coordenadas y altitud, sin marcas de tiempo ni datos de pulso,
+ * cadencia o temperatura, y con los puntos reducidos.
+ *
+ * Un GPX de Strava a 1 Hz puede pesar varios megas; esto lo deja en
+ * unos cientos de kilobytes sin que el trazado cambie a la vista, y
+ * dentro del limite de puntos que aceptan los GPS de bici.
+ */
+export function gpxLigero(points, nombre, maxPuntos = 3000) {
+  const reducidos = simplifyToBudget(points, maxPuntos);
+  const trkpts = reducidos
+    .map((p) => {
+      const ele = p.ele === null || p.ele === undefined ? "" : `<ele>${p.ele.toFixed(1)}</ele>`;
+      return `   <trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}">${ele}</trkpt>`;
+    })
+    .join("\n");
+  const n = escXml(nombre);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Rutometro" xmlns="http://www.topografix.com/GPX/1/1">
+ <metadata>
+  <name>${n}</name>
+ </metadata>
+ <trk>
+  <name>${n}</name>
+  <trkseg>
+${trkpts}
+  </trkseg>
+ </trk>
+</gpx>
+`;
+  return { xml, puntos: reducidos.length };
 }
 
 // ---------------------------------------------------------------- metricas

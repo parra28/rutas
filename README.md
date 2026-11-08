@@ -132,6 +132,21 @@ assets/             CSS y JavaScript del navegador
 .github/workflows/  Publicación automática en GitHub Pages
 ```
 
+### El GPX que se descarga no es el que subes
+
+Los archivos de Strava se graban a un punto por segundo y pesan varios megas
+(pulso, cadencia, temperatura y marca de tiempo en cada punto). Eso no sirve
+de nada a quien quiere seguir la ruta y hace la descarga muy pesada en el
+móvil, así que el build genera una versión reducida:
+
+- Solo coordenadas y altitud. Sin tiempos ni datos fisiológicos.
+- Puntos reducidos con Ramer-Douglas-Peucker hasta un máximo de 3.000, que es
+  lo que aceptan sin problemas los GPS de bici. El trazado no cambia a la vista.
+- Ejemplo real: **6,1 MB → 129 KB**, de 18.272 a 1.973 puntos.
+
+El archivo original se queda en `rutas/` y es el que se usa para calcular las
+métricas, incluido el tiempo real en movimiento.
+
 ### Dos detalles del cálculo, por transparencia
 
 1. **El desnivel se suaviza.** El track se remuestrea cada 10 m y la altitud
@@ -140,7 +155,8 @@ assets/             CSS y JavaScript del navegador
    pueden no coincidir con los de Strava o Wikiloc: cada plataforma usa su
    propio filtro.
 2. **El tiempo estimado es orientativo.** Sale de una velocidad base según el
-   tipo de bici, penalizada por la pendiente de cada tramo. Si el GPX trae
+   tipo de bici, penalizada por la pendiente de cada tramo. Está calibrado con
+   una sola ruta real, así que tómalo como una aproximación. Si el GPX trae
    marcas de tiempo, se muestra el tiempo real en movimiento en su lugar.
 
 ### Mapas
