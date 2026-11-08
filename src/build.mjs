@@ -150,6 +150,7 @@ async function cargarRutas() {
         superficie: meta.superficie || "",
         agua: meta.agua || "",
         fecha: meta.fecha || "",
+        video: meta.video || "",
         avisos: meta.avisos || "",
         tipoRecorrido: meta.recorrido || metricas.tipoRecorrido,
         descripcionHtml: markdown(cuerpo),

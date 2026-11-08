@@ -124,7 +124,21 @@ rutas/navacerrada-por-la-barranca/
 Si una ruta no tiene carpeta de fotos, la tarjeta muestra la silueta del
 trazado, como hasta ahora.
 
-### 5. Sube los cambios
+### 5. Añade un vídeo (opcional)
+
+En los metadatos, con la URL de Instagram o de YouTube:
+
+```yaml
+video: https://www.instagram.com/reel/DIt3B5xI-kx/
+```
+
+Funciona con reels y publicaciones de Instagram y con vídeos y shorts de
+YouTube. La ficha muestra un botón, y **el vídeo no se carga hasta que el
+visitante lo pulsa**: así la página no pide nada a Instagram ni a YouTube
+solo por abrirla, y carga más rápido. Debajo queda siempre un enlace para
+abrirlo en la plataforma.
+
+### 6. Sube los cambios
 
 ```bash
 git add rutas/ && git commit -m "Añadir ruta: Navacerrada por La Barranca" && git push
@@ -165,6 +179,7 @@ se usan en el perfil y en los filtros.
 | `tags` | no | Etiquetas libres; entran en el buscador. |
 | `puntos` | no | Lista de puntos de interés. Ver más arriba. |
 | `avisos` | no | Peligros o cosas a tener en cuenta. Sale destacado. |
+| `video` | no | URL de un reel de Instagram o un vídeo de YouTube. |
 | `recorrido` | no | Fuerza `circular`, `lineal` o `ida-vuelta` si la detección falla. |
 | `slug` | no | Fuerza la URL de la ruta. |
 
@@ -202,6 +217,7 @@ src/lib/gpx.mjs     Parseo del GPX y cálculo de métricas
 src/lib/render.mjs  Plantillas HTML
 src/lib/content.mjs Lectura de las fichas .md
 src/lib/puntos.mjs  Puntos de interés: tipos y colocación sobre la ruta
+src/lib/video.mjs   Reconoce las URL de vídeo y cómo incrustarlas
 src/serve.mjs       Servidor local para pruebas
 assets/             CSS y JavaScript del navegador
   minimapas.js      Convierte la silueta de cada tarjeta en un mapa real

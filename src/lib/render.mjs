@@ -7,6 +7,7 @@
 import { esc, markdown } from "./content.mjs";
 import { miniatura } from "./thumb.mjs";
 import { TIPOS_PUNTO } from "./puntos.mjs";
+import { analizarVideo } from "./video.mjs";
 import {
   TIPOS_BICI,
   TIPOS_RECORRIDO,
@@ -446,6 +447,8 @@ export function paginaRuta({ base, r, otras }) {
 </div>`
       : "";
 
+  const video = analizarVideo(r.video);
+
   const practicos = [
     r.parking ? ["Salida y aparcamiento", esc(r.parking)] : null,
     r.epoca ? ["Mejor época", esc(r.epoca)] : null,
@@ -520,6 +523,24 @@ export function paginaRuta({ base, r, otras }) {
           )
           .join("")}
       </ul>
+    </section>`
+        : ""
+    }
+
+    ${
+      video
+        ? `<section class="bloque">
+      <h2>Vídeo</h2>
+      <div class="video${video.vertical ? " vertical" : ""}" id="video"
+           data-incrustar="${esc(video.incrustar)}" data-plataforma="${esc(video.plataforma)}">
+        <div class="video-marco">
+          <button type="button" class="video-boton">
+            <span class="video-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>
+            <span class="video-texto">Ver el vídeo<small>Se carga desde ${esc(video.plataforma)} al pulsar</small></span>
+          </button>
+        </div>
+      </div>
+      <p class="video-enlace"><a href="${esc(video.enlace)}" rel="noopener noreferrer" target="_blank">Abrir en ${esc(video.plataforma)}</a></p>
     </section>`
         : ""
     }
@@ -614,6 +635,7 @@ ${visor}
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
 <script src="${base}assets/ruta.js"></script>
 ${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}
+${video ? `<script src="${base}assets/video.js"></script>` : ""}
 ${otras.length ? `${datosMapas(otras)}\n<script src="${base}assets/minimapas.js"></script>` : ""}`,
   });
 }
