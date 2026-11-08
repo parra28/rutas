@@ -3,6 +3,7 @@
 
 import { esc, markdown } from "./content.mjs";
 import { miniatura } from "./thumb.mjs";
+import { TIPOS_PUNTO } from "./puntos.mjs";
 import {
   TIPOS_BICI,
   TIPOS_RECORRIDO,
@@ -299,7 +300,7 @@ ${datosMapas(rutas)}
  * Una sola serie (la altitud), con el borde superior coloreado por pendiente.
  * El JavaScript solo le anade la cruz y el globo al pasar el raton.
  */
-function perfilSvg(perfil, { ancho = 1000, alto = 260 } = {}) {
+function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 260 } = {}) {
   const padIzq = 46;
   const padDer = 12;
   const padArr = 14;
@@ -366,6 +367,24 @@ function perfilSvg(perfil, { ancho = 1000, alto = 260 } = {}) {
     );
   }
 
+  // marcas de los puntos de interes sobre el perfil
+  const marcasPunto = puntos
+    .map((pt) => {
+      const x = X(Math.min(pt.metros, dTotal));
+      let cerca = perfil[0];
+      for (const q of perfil) {
+        if (Math.abs(q[0] - pt.metros) < Math.abs(cerca[0] - pt.metros)) cerca = q;
+      }
+      const y = Y(cerca[1]);
+      const titulo = `km ${decimal(pt.km)} · ${pt.etiqueta}${pt.texto ? `: ${pt.texto}` : ""}`;
+      return `<g class="perfil-punto-interes${pt.aviso ? " es-aviso" : ""}"><title>${esc(
+        titulo
+      )}</title><line x1="${x.toFixed(1)}" y1="${(padArr + h).toFixed(1)}" x2="${x.toFixed(
+        1
+      )}" y2="${y.toFixed(1)}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6"/></g>`;
+    })
+    .join("");
+
   return `<div class="perfil-caja">
 <svg id="perfil" class="perfil-svg" viewBox="0 0 ${ancho} ${alto}" preserveAspectRatio="none"
   role="img" aria-label="Perfil de altimetría de la ruta: de ${entero(eMin)} a ${entero(eMax)} metros a lo largo de ${decimal(dTotal / 1000)} kilómetros"
@@ -376,6 +395,7 @@ function perfilSvg(perfil, { ancho = 1000, alto = 260 } = {}) {
   <g class="perfil-linea">${lineas
     .map((l) => `<polyline class="g g-${l.clase}" points="${l.puntos.join(" ")}"/>`)
     .join("")}</g>
+  <g class="perfil-puntos">${marcasPunto}</g>
   <line id="perfil-cruz" class="perfil-cruz" x1="0" y1="${padArr}" x2="0" y2="${padArr + h}" hidden/>
   <circle id="perfil-punto" class="perfil-punto" r="5" hidden/>
 </svg>
@@ -478,7 +498,7 @@ export function paginaRuta({ base, r, otras }) {
       <h2>Altimetría</h2>
       <p class="bloque-nota">Pasa el cursor (o el dedo) por el perfil para ver el punto exacto en el mapa. El color del borde indica la pendiente.</p>
       <div class="perfil-envoltorio">
-        ${perfilSvg(r.perfil)}
+        ${perfilSvg(r.perfil, r.puntos)}
         <div id="perfil-globo" class="globo" hidden></div>
       </div>
       <div class="perfil-eje-x"><span>kilómetros</span></div>
@@ -492,6 +512,29 @@ export function paginaRuta({ base, r, otras }) {
         ? `<section class="bloque prosa">
       <h2>La ruta</h2>
       ${r.descripcionHtml}
+    </section>`
+        : ""
+    }
+
+    ${
+      r.puntos && r.puntos.length
+        ? `<section class="bloque">
+      <h2>Puntos de interés</h2>
+      <ul class="puntos">
+        ${r.puntos
+          .map(
+            (pt) => `<li class="punto-item${pt.aviso ? " es-aviso" : ""}">
+          <span class="punto-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17">${
+            (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono
+          }</svg></span>
+          <span class="punto-km">km ${decimal(pt.km)}</span>
+          <span class="punto-texto"><b>${esc(pt.etiqueta)}</b>${
+              pt.texto ? ` · ${esc(pt.texto)}` : ""
+            }</span>
+        </li>`
+          )
+          .join("")}
+      </ul>
     </section>`
         : ""
     }
@@ -561,6 +604,16 @@ ${visor}
     bbox: r.bbox,
     distancia: r.distancia,
     conAltitud: r.conAltitud,
+    puntos: (r.puntos || []).map((pt) => ({
+      lat: pt.lat,
+      lon: pt.lon,
+      km: pt.km,
+      tipo: pt.tipo,
+      etiqueta: pt.etiqueta,
+      texto: pt.texto,
+      aviso: pt.aviso,
+      icono: (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono,
+    })),
   });
 
   return layout({

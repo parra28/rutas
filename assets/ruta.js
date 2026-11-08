@@ -55,7 +55,7 @@
   mapa.on("click", function () { mapa.scrollWheelZoom.enable(); });
   mapa.on("mouseout", function () { mapa.scrollWheelZoom.disable(); });
 
-  L.control.layers(capas, null, { position: "topright" }).addTo(mapa);
+  var superpuestas = {};
   L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapa);
 
   // trazado: una linea blanca ancha debajo para que resalte sobre cualquier mapa
@@ -99,6 +99,34 @@
     if (p) L.marker([p[3], p[4]], { icon: icono("marca-km", k) }).addTo(capaKm);
   }
   capaKm.addTo(mapa);
+
+  // puntos de interes: fuentes, bares, tiendas, avisos...
+  var capaPuntos = null;
+  if (d.puntos && d.puntos.length) {
+    capaPuntos = L.layerGroup();
+    d.puntos.forEach(function (pt) {
+      var marca = L.divIcon({
+        className: "",
+        html:
+          '<div class="punto-mapa' + (pt.aviso ? " es-aviso" : "") + '">' +
+          '<svg viewBox="0 0 24 24" width="15" height="15">' + pt.icono + "</svg></div>",
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+      L.marker([pt.lat, pt.lon], { icon: marca, zIndexOffset: 700 })
+        .addTo(capaPuntos)
+        .bindTooltip(
+          "<b>" + pt.etiqueta + "</b>" + (pt.texto ? " · " + pt.texto : "") +
+            '<br><span class="tt-km">km ' + String(pt.km).replace(".", ",") + "</span>"
+        );
+    });
+    capaPuntos.addTo(mapa);
+  }
+
+  // selector de capas: las bases, y las marcas y los puntos como superpuestas
+  superpuestas["Marcas kilométricas"] = capaKm;
+  if (capaPuntos) superpuestas["Puntos de interés"] = capaPuntos;
+  L.control.layers(capas, superpuestas, { position: "topright" }).addTo(mapa);
 
   cursor = L.marker([0, 0], { icon: icono("cursor-mapa"), zIndexOffset: 900, interactive: false });
 

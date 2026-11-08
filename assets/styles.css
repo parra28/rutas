@@ -611,6 +611,20 @@ h2 { font-size: 1.25rem; }
   text-align: center;
   box-shadow: var(--sombra);
 }
+.punto-mapa {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1a1a19;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+}
+.punto-mapa.es-aviso { background: #d03b3b; }
+.leaflet-tooltip .tt-km { color: var(--ink-mudo); font-variant-numeric: tabular-nums; }
+
 .cursor-mapa {
   width: 16px; height: 16px;
   border-radius: 50%;
@@ -656,6 +670,19 @@ h2 { font-size: 1.25rem; }
 .g-f0 { stroke: var(--g-f0); }
 .g-u1 { stroke: var(--g-u1); } .g-u2 { stroke: var(--g-u2); } .g-u3 { stroke: var(--g-u3); } .g-u4 { stroke: var(--g-u4); }
 .perfil-cruz[hidden], .perfil-punto[hidden] { display: none; }
+.perfil-punto-interes line {
+  stroke: var(--ink-mudo);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+}
+.perfil-punto-interes circle {
+  fill: var(--ink);
+  stroke: var(--superficie);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.perfil-punto-interes.es-aviso circle { fill: #d03b3b; }
 .perfil-cruz { stroke: var(--ink-mudo); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .perfil-punto { fill: var(--acento); stroke: var(--superficie); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .perfil-eje-x { text-align: center; font-size: 0.72rem; color: var(--ink-mudo); margin-top: 2px; }
@@ -689,6 +716,52 @@ h2 { font-size: 1.25rem; }
 .g-bg-d4 { background: var(--g-d4); } .g-bg-d3 { background: var(--g-d3); } .g-bg-d2 { background: var(--g-d2); }
 .g-bg-f0 { background: var(--g-f0); }
 .g-bg-u1 { background: var(--g-u1); } .g-bg-u2 { background: var(--g-u2); } .g-bg-u3 { background: var(--g-u3); } .g-bg-u4 { background: var(--g-u4); }
+
+/* ------------------------------------------------- puntos de interes */
+
+.puntos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--linea);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+.punto-item {
+  display: grid;
+  grid-template-columns: 34px 72px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--superficie);
+}
+.punto-icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--superficie-2);
+  color: var(--ink-2);
+}
+.punto-item.es-aviso .punto-icono { background: rgba(208, 59, 59, 0.14); color: #d03b3b; }
+.punto-km {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.punto-texto { font-size: 0.93rem; color: var(--ink-2); min-width: 0; }
+.punto-texto b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 520px) {
+  .punto-item { grid-template-columns: 30px 60px 1fr; gap: 8px; padding: 9px 11px; }
+  .punto-icono { width: 26px; height: 26px; }
+}
 
 /* ------------------------------------------------------------------ pie */
 

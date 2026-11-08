@@ -263,6 +263,66 @@ function estimateTime(samples, grades, bici) {
   return Math.round(seconds);
 }
 
+// ------------------------------------------- localizar puntos en la ruta
+
+/**
+ * Devuelve un localizador que traduce entre kilometro de la ruta y
+ * coordenadas, en los dos sentidos. Calcula las distancias una sola vez.
+ */
+export function crearLocalizador(points) {
+  const cum = [0];
+  for (let i = 1; i < points.length; i++) {
+    cum.push(cum[i - 1] + haversine(points[i - 1], points[i]));
+  }
+  const total = cum[cum.length - 1];
+
+  return {
+    total,
+    /** Punto de la ruta a X metros de la salida, interpolado. */
+    porDistancia(metros) {
+      const d = Math.max(0, Math.min(total, metros));
+      let lo = 0;
+      let hi = cum.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (cum[mid] < d) lo = mid + 1;
+        else hi = mid;
+      }
+      const j = Math.max(1, lo);
+      const d0 = cum[j - 1];
+      const d1 = cum[j];
+      const t = d1 - d0 > 0 ? (d - d0) / (d1 - d0) : 0;
+      const a = points[j - 1];
+      const b = points[j];
+      return {
+        distancia: d,
+        lat: a.lat + (b.lat - a.lat) * t,
+        lon: a.lon + (b.lon - a.lon) * t,
+        ele: a.ele === null || b.ele === null ? null : a.ele + (b.ele - a.ele) * t,
+      };
+    },
+    /** Punto de la ruta mas cercano a unas coordenadas. */
+    porCoordenadas(lat, lon) {
+      let mejor = 0;
+      let mejorD = Infinity;
+      for (let i = 0; i < points.length; i++) {
+        const d = haversine({ lat, lon }, points[i]);
+        if (d < mejorD) {
+          mejorD = d;
+          mejor = i;
+        }
+      }
+      return {
+        distancia: cum[mejor],
+        lat: points[mejor].lat,
+        lon: points[mejor].lon,
+        ele: points[mejor].ele,
+        separacion: mejorD,
+      };
+    },
+  };
+}
+
 // ------------------------------------------------- GPX ligero de descarga
 
 function escXml(s) {

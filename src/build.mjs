@@ -11,7 +11,8 @@ import { readdir, readFile, writeFile, mkdir, cp, rm, stat } from "node:fs/promi
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { parseGpx, analizar, gpxLigero } from "./lib/gpx.mjs";
+import { parseGpx, analizar, gpxLigero, crearLocalizador } from "./lib/gpx.mjs";
+import { resolverPuntos, puntosDelGpx } from "./lib/puntos.mjs";
 import { parseFicha, markdown, slugify, esc } from "./lib/content.mjs";
 import { miniatura } from "./lib/thumb.mjs";
 import { paginaIndice, paginaRuta } from "./lib/render.mjs";
@@ -125,6 +126,13 @@ async function cargarRutas() {
       const ligero = gpxLigero(points, nombre);
       const fotos = await cargarFotos(nombreBase);
 
+      // puntos de interes: los de la ficha, mas los waypoints del propio GPX
+      const localizador = crearLocalizador(points);
+      const puntos = resolverPuntos(meta.puntos, localizador, (m) =>
+        aviso(`${nombreBase}: ${m}`)
+      ).concat(puntosDelGpx(waypoints, localizador));
+      puntos.sort((a, b) => a.metros - b.metros);
+
       rutas.push({
         ...metricas,
         numPuntos: ligero.puntos,
@@ -146,6 +154,7 @@ async function cargarRutas() {
         tipoRecorrido: meta.recorrido || metricas.tipoRecorrido,
         descripcionHtml: markdown(cuerpo),
         waypoints,
+        puntos,
         fotos,
         pesoGpx: pesoLegible(Buffer.byteLength(ligero.xml)),
         pesoOriginal: pesoLegible(original.size),
@@ -256,9 +265,11 @@ async function generar() {
 
   // resumen
   const totalFotos = rutas.reduce((a, r) => a + r.fotos.length, 0);
+  const totalPuntos = rutas.reduce((a, r) => a + r.puntos.length, 0);
   console.log(
     `\n  ${rutas.length} ruta(s), ${zonas.length} zona(s)` +
-      (totalFotos ? `, ${totalFotos} foto(s)` : "")
+      (totalFotos ? `, ${totalFotos} foto(s)` : "") +
+      (totalPuntos ? `, ${totalPuntos} punto(s) de interés` : "")
   );
   if (avisos.length) console.log(`  ${avisos.length} aviso(s)`);
   if (errores.length) {

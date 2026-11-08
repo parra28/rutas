@@ -55,7 +55,51 @@ son duros, dónde parar. Admite títulos con `##`, listas con guion,
 - Ojo al paso canadiense del km 14.
 ```
 
-### 3. Añade fotos (opcional)
+### 3. Marca los puntos de interés (opcional)
+
+Dentro de la ficha `.md`, en los metadatos:
+
+```yaml
+puntos:
+  - 0 | parking | Aparcamiento junto al área recreativa
+  - 14,2 | fuente | Fuente del pueblo, potable todo el año
+  - 38 | desayuno | Bar de la plaza, abre a las 8
+  - 52,5 | tienda | Supermercado, último avituallamiento
+  - 68 | peligro | Bajada con gravilla suelta en las curvas
+  - 79 | mirador | Se ve toda la sierra
+```
+
+**Formato: `dónde | tipo | lo que quieras contar`**
+
+- **Dónde**: el kilómetro de la ruta (`14,2` o `14.2`). El programa calcula
+  solo las coordenadas exactas sobre el trazado. También puedes dar
+  coordenadas directamente, pero **con punto decimal**: `38.0258,-6.2197`.
+  Esa distinción importa: `14,2` es el kilómetro 14,2, y `38.0258,-6.2197`
+  son coordenadas.
+- **Tipo**, uno de estos:
+
+  | Tipo | Para qué | También se acepta |
+  |---|---|---|
+  | `parking` | Dónde dejar el coche | `aparcamiento`, `salida` |
+  | `fuente` | Agua potable | `agua` |
+  | `desayuno` | Bar, café, avituallamiento | `bar`, `comida`, `restaurante` |
+  | `tienda` | Supermercado, panadería | `super`, `supermercado` |
+  | `taller` | Taller de bicis | `mecanico`, `bici` |
+  | `mirador` | Vistas, cima | `vistas`, `cima` |
+  | `peligro` | Tramo delicado | `cuidado`, `ojo` |
+  | `cruce` | Desvío fácil de fallar | `desvio` |
+  | `foto` | Sitio bonito para parar | |
+  | `otro` | Cualquier otra cosa | |
+
+- **El texto** es libre y puede llevar comas.
+
+Los puntos salen en tres sitios a la vez: como marcadores en el mapa (se
+pueden ocultar desde el selector de capas), como marcas sobre el perfil de
+altimetría, y como lista ordenada por kilómetro en la ficha.
+
+Si el GPX ya trae waypoints, se añaden también sin que hagas nada.
+
+### 4. Añade fotos (opcional)
 
 Crea una carpeta **con el mismo nombre** que el GPX y mete dentro las imágenes:
 
@@ -79,7 +123,7 @@ rutas/navacerrada-por-la-barranca/
 Si una ruta no tiene carpeta de fotos, la tarjeta muestra la silueta del
 trazado, como hasta ahora.
 
-### 4. Sube los cambios
+### 5. Sube los cambios
 
 ```bash
 git add rutas/ && git commit -m "Añadir ruta: Navacerrada por La Barranca" && git push
@@ -114,6 +158,7 @@ lleva marcas de tiempo.
 | `superficie` | no | Reparto de asfalto, pista y sendero. |
 | `agua` | no | Fuentes y avituallamiento. |
 | `tags` | no | Etiquetas libres; entran en el buscador. |
+| `puntos` | no | Lista de puntos de interés. Ver más arriba. |
 | `avisos` | no | Peligros o cosas a tener en cuenta. Sale destacado. |
 | `recorrido` | no | Fuerza `circular`, `lineal` o `ida-vuelta` si la detección falla. |
 | `slug` | no | Fuerza la URL de la ruta. |
@@ -151,6 +196,7 @@ src/build.mjs       Lee los GPX y escribe el sitio en dist/
 src/lib/gpx.mjs     Parseo del GPX y cálculo de métricas
 src/lib/render.mjs  Plantillas HTML
 src/lib/content.mjs Lectura de las fichas .md
+src/lib/puntos.mjs  Puntos de interés: tipos y colocación sobre la ruta
 src/serve.mjs       Servidor local para pruebas
 assets/             CSS y JavaScript del navegador
   minimapas.js      Convierte la silueta de cada tarjeta en un mapa real

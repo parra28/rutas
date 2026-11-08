@@ -21,9 +21,20 @@ export function parseFicha(texto) {
   if (!m) return { meta: {}, cuerpo: t.trim() };
 
   const meta = {};
-  for (const linea of m[1].split("\n")) {
+  const lineas = m[1].split("\n");
+  let listaAbierta = null; // clave cuya lista "- ..." estamos leyendo
+
+  for (const linea of lineas) {
     const l = linea.trim();
     if (!l || l.startsWith("#")) continue;
+
+    // elemento de lista: "- lo que sea"
+    if (listaAbierta && /^-\s+/.test(l)) {
+      meta[listaAbierta].push(l.replace(/^-\s+/, "").replace(/^"|"$/g, ""));
+      continue;
+    }
+    listaAbierta = null;
+
     const i = l.indexOf(":");
     if (i < 0) continue;
     const clave = l.slice(0, i).trim();
@@ -40,7 +51,9 @@ export function parseFicha(texto) {
       continue;
     }
     if (valor === "") {
-      meta[clave] = "";
+      // puede ser una clave vacia o el comienzo de una lista en varias lineas
+      meta[clave] = [];
+      listaAbierta = clave;
       continue;
     }
     if (/^-?\d+(\.\d+)?$/.test(valor)) {
@@ -52,6 +65,10 @@ export function parseFicha(texto) {
       continue;
     }
     meta[clave] = valor;
+  }
+  // una "lista" que se quedo vacia era en realidad una clave sin valor
+  for (const clave of Object.keys(meta)) {
+    if (Array.isArray(meta[clave]) && meta[clave].length === 0) meta[clave] = "";
   }
   return { meta, cuerpo: m[2].trim() };
 }
