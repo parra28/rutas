@@ -5,7 +5,9 @@ provincia: Badajoz
 bici: gravel
 dificultad: 4
 fecha: 2025-11-10
+desnivel: 2730
 parking: Zona de la Venta del Culebrín, junto al cruce de la A-66 con la N-630
+video: https://www.instagram.com/reel/DQ_Nw68jBAh/
 tags: [gravel, circular, sierra morena, via de la plata]
 # Puntos de interés: kilómetro | tipo | lo que quieras contar.
 # Tipos: parking, fuente, desayuno, comida, tienda, taller, mirador, peligro, cruce, foto, otro

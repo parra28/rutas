@@ -252,13 +252,21 @@ métricas, incluido el tiempo real en movimiento.
    el desnivel; con una ventana grande se comen las subidas cortas reales,
    que en terreno ondulado son la mayor parte del acumulado.
 
-   Ese valor no está puesto a ojo: se eligió comparando contra una ruta con
-   desnivel real conocido (2.428 m). Sin filtro salían 2.665 m; con una
-   ventana de 300 m, 1.915 m; con los 60 m actuales, 2.464 m, un 1,5% de más.
+   Ese valor no está puesto a ojo: se eligió comparando contra dos rutas con
+   desnivel real conocido. Con la ventana de 300 m que había antes, el
+   cálculo se quedaba un 21% corto. Con los 60 m actuales:
 
-   Aun así, cada plataforma usa su propio filtro, así que tus números pueden
-   no coincidir exactamente con los de Strava. Cuando sepas el valor bueno,
-   fíjalo en la ficha:
+   | Ruta | Real | Calculado | Error |
+   |---|---|---|---|
+   | Cuenca Minera | 2.428 m | 2.464 m | +1,5% |
+   | Venta Culebrín | 2.730 m | 2.641 m | −3,3% |
+
+   Los errores van en sentidos opuestos, que es lo que cabe esperar cuando
+   el filtro es razonable y lo que queda son diferencias de cada grabación.
+   No hay una ventana que acierte en las dos a la vez: a Cuenca Minera le
+   iría mejor una más grande y a Venta Culebrín una más pequeña.
+
+   Por eso, cuando sepas el valor bueno, fíjalo en la ficha:
 
    ```yaml
    desnivel: 2428
