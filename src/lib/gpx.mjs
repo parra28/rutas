@@ -301,24 +301,6 @@ export function crearLocalizador(points) {
         ele: a.ele === null || b.ele === null ? null : a.ele + (b.ele - a.ele) * t,
       };
     },
-    /**
-     * Trozo del trazado entre dos distancias, con los extremos interpolados.
-     * Sirve para pintar en el mapa cada tramo de terreno por separado.
-     */
-    tramo(metrosA, metrosB) {
-      const a = Math.max(0, Math.min(total, Math.min(metrosA, metrosB)));
-      const b = Math.max(0, Math.min(total, Math.max(metrosA, metrosB)));
-      const salida = [];
-      const pa = this.porDistancia(a);
-      salida.push({ lat: pa.lat, lon: pa.lon, ele: pa.ele });
-      for (let i = 0; i < points.length; i++) {
-        if (cum[i] > a && cum[i] < b) salida.push(points[i]);
-      }
-      const pb = this.porDistancia(b);
-      salida.push({ lat: pb.lat, lon: pb.lon, ele: pb.ele });
-      return salida;
-    },
-
     /** Punto de la ruta mas cercano a unas coordenadas. */
     porCoordenadas(lat, lon) {
       let mejor = 0;

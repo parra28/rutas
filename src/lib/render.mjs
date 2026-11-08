@@ -7,7 +7,6 @@
 import { esc, markdown } from "./content.mjs";
 import { miniatura } from "./thumb.mjs";
 import { TIPOS_PUNTO } from "./puntos.mjs";
-import { TIPOS_TERRENO } from "./terreno.mjs";
 import {
   TIPOS_BICI,
   TIPOS_RECORRIDO,
@@ -177,33 +176,6 @@ function franjaCifras(r) {
 </dl>`;
 }
 
-/** Barra de porcentajes del firme. */
-function barraTerreno(reparto) {
-  if (!reparto || reparto.length === 0) return "";
-  const segmentos = reparto
-    .map(
-      (x) =>
-        `<span class="terreno-trozo t-${x.tipo}" style="width:${x.porcentaje}%" title="${esc(
-          x.etiqueta
-        )}: ${decimal(x.porcentaje)}%"></span>`
-    )
-    .join("");
-  const leyenda = reparto
-    .map(
-      (x) =>
-        `<li class="terreno-item"><span class="terreno-color t-${x.tipo}" aria-hidden="true"></span>
-      <b>${decimal(x.porcentaje)}%</b> ${esc(x.etiqueta.toLowerCase())}
-      <span class="terreno-km">${km(x.metros)} km</span></li>`
-    )
-    .join("");
-  return `<div class="terreno">
-  <div class="terreno-barra" role="img" aria-label="Reparto del firme: ${reparto
-    .map((x) => `${decimal(x.porcentaje)}% ${x.etiqueta.toLowerCase()}`)
-    .join(", ")}">${segmentos}</div>
-  <ul class="terreno-leyenda">${leyenda}</ul>
-</div>`;
-}
-
 // --------------------------------------------------------------- tarjetas
 
 function tarjeta(r, base, { compacta = false } = {}) {
@@ -237,13 +209,6 @@ function tarjeta(r, base, { compacta = false } = {}) {
         ${cifra("Desnivel +", entero(r.desnivelPositivo), "m")}
         ${cifra(t[0].etiqueta, t[0].valor)}
       </dl>
-      ${
-        r.terreno && r.terreno.reparto.length
-          ? `<div class="terreno-barra fina" aria-hidden="true">${r.terreno.reparto
-              .map((x) => `<span class="terreno-trozo t-${x.tipo}" style="width:${x.porcentaje}%"></span>`)
-              .join("")}</div>`
-          : ""
-      }
     </div>
   </a>
 </article>`;
@@ -485,11 +450,9 @@ export function paginaRuta({ base, r, otras }) {
     r.parking ? ["Salida y aparcamiento", esc(r.parking)] : null,
     r.epoca ? ["Mejor época", esc(r.epoca)] : null,
     r.agua ? ["Agua", esc(r.agua)] : null,
-    r.superficie && !(r.terreno && r.terreno.reparto.length) ? ["Superficie", esc(r.superficie)] : null,
+    r.superficie ? ["Superficie", esc(r.superficie)] : null,
     r.fecha ? ["Ruta registrada el", esc(fechaLarga(r.fecha) || r.fecha)] : null,
   ].filter(Boolean);
-
-  const hayTerreno = r.terreno && r.terreno.reparto.length > 0;
 
   const contenido = `
 <article class="ruta">
@@ -531,15 +494,6 @@ export function paginaRuta({ base, r, otras }) {
   </div>
 
   <div class="contenedor">
-    ${
-      hayTerreno
-        ? `<section class="bloque">
-      <h2>Terreno</h2>
-      ${barraTerreno(r.terreno.reparto)}
-    </section>`
-        : ""
-    }
-
     ${
       r.descripcionHtml
         ? `<section class="bloque prosa">
@@ -626,8 +580,7 @@ ${visor}
 
   const datosRuta = JSON.stringify({
     nombre: r.nombre,
-    trazado: hayTerreno ? [] : r.trazado,
-    tramos: hayTerreno ? r.terreno.tramos.map((t) => ({ tipo: t.tipo, puntos: t.puntos })) : [],
+    trazado: r.trazado,
     perfil: r.perfil,
     inicio: r.inicio,
     fin: r.fin,
@@ -643,9 +596,6 @@ ${visor}
       aviso: pt.aviso,
       icono: (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono,
     })),
-    terreno: hayTerreno
-      ? r.terreno.reparto.map((x) => ({ tipo: x.tipo, etiqueta: x.etiqueta, porcentaje: x.porcentaje }))
-      : [],
   });
 
   return layout({

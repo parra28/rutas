@@ -100,34 +100,7 @@ altimetría, y como lista ordenada por kilómetro en la ficha.
 
 Si el GPX ya trae waypoints, se añaden también sin que hagas nada.
 
-### 4. Marca el tipo de firme (opcional)
-
-También en los metadatos, por tramos de kilómetros:
-
-```yaml
-terreno:
-  - 0-9,5 | asfalto
-  - 9,5-34 | pista
-  - 34-38 | sendero
-  - 38-47 | asfalto
-```
-
-**Formato: `kmInicio-kmFin | tipo`**, con cuatro tipos: `asfalto`, `pista`,
-`sendero` y `otro`. Se aceptan sinónimos como `carretera`, `tierra`, `grava`,
-`camino`, `senda` o `trialera`.
-
-Con eso, el programa:
-
-- Pinta el trazado del mapa **con un color por tipo de firme**, con su leyenda.
-- Calcula el **porcentaje y los kilómetros de cada tipo**, y lo muestra como
-  barra en la ficha y como franja fina en la tarjeta de la portada.
-- Avisa si los tramos se solapan o se salen de la ruta. Los kilómetros que no
-  declares cuentan como "otro firme", así que no hace falta cubrirlo todo.
-
-Esto no se puede calcular solo: un GPX guarda por dónde pasaste, no por qué
-tipo de suelo. Tiene que salir de ti.
-
-### 5. Añade fotos (opcional)
+### 4. Añade fotos (opcional)
 
 Crea una carpeta **con el mismo nombre** que el GPX y mete dentro las imágenes:
 
@@ -151,7 +124,7 @@ rutas/navacerrada-por-la-barranca/
 Si una ruta no tiene carpeta de fotos, la tarjeta muestra la silueta del
 trazado, como hasta ahora.
 
-### 6. Sube los cambios
+### 5. Sube los cambios
 
 ```bash
 git add rutas/ && git commit -m "Añadir ruta: Navacerrada por La Barranca" && git push
@@ -191,7 +164,6 @@ se usan en el perfil y en los filtros.
 | `agua` | no | Fuentes y avituallamiento. |
 | `tags` | no | Etiquetas libres; entran en el buscador. |
 | `puntos` | no | Lista de puntos de interés. Ver más arriba. |
-| `terreno` | no | Tramos de firme. Ver más arriba. |
 | `avisos` | no | Peligros o cosas a tener en cuenta. Sale destacado. |
 | `recorrido` | no | Fuerza `circular`, `lineal` o `ida-vuelta` si la detección falla. |
 | `slug` | no | Fuerza la URL de la ruta. |
@@ -230,7 +202,6 @@ src/lib/gpx.mjs     Parseo del GPX y cálculo de métricas
 src/lib/render.mjs  Plantillas HTML
 src/lib/content.mjs Lectura de las fichas .md
 src/lib/puntos.mjs  Puntos de interés: tipos y colocación sobre la ruta
-src/lib/terreno.mjs Tipo de firme por tramos y reparto por porcentaje
 src/serve.mjs       Servidor local para pruebas
 assets/             CSS y JavaScript del navegador
   minimapas.js      Convierte la silueta de cada tarjeta en un mapa real

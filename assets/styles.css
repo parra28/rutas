@@ -23,12 +23,6 @@
   --bici-btt: #1baf7a;
   --bici-cicloturismo: #eda100;
 
-  /* firme */
-  --t-asfalto: #2a78d6;
-  --t-pista: #eb6834;
-  --t-sendero: #1baf7a;
-  --t-otro: #898781;
-
   /* escala divergente de pendiente */
   --g-d4: #104281;
   --g-d3: #1c5cab;
@@ -62,10 +56,6 @@
     --bici-gravel: #d95926;
     --bici-btt: #199e70;
     --bici-cicloturismo: #c98500;
-    --t-asfalto: #3987e5;
-    --t-pista: #d95926;
-    --t-sendero: #199e70;
-    --t-otro: #898781;
     --g-d4: #86b6ef;
     --g-d3: #5598e7;
     --g-d2: #3987e5;
@@ -94,10 +84,6 @@
   --bici-gravel: #d95926;
   --bici-btt: #199e70;
   --bici-cicloturismo: #c98500;
-  --t-asfalto: #3987e5;
-  --t-pista: #d95926;
-  --t-sendero: #199e70;
-  --t-otro: #898781;
   --g-d4: #86b6ef;
   --g-d3: #5598e7;
   --g-d2: #3987e5;
@@ -468,44 +454,6 @@ h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.06em; color
 .g-bg-u1 { background: var(--g-u1); } .g-bg-u2 { background: var(--g-u2); }
 .g-bg-u3 { background: var(--g-u3); } .g-bg-u4 { background: var(--g-u4); }
 
-/* -------------------------------------------------------------- terreno */
-
-.leyenda-mapa {
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: 7px;
-  padding: 6px 9px;
-  font-size: 0.73rem;
-  color: var(--ink-2);
-  box-shadow: var(--sombra);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.leyenda-mapa .leyenda-color { width: 13px; height: 4px; border-radius: 2px; }
-
-.terreno-barra {
-  display: flex; width: 100%; height: 14px;
-  border-radius: 7px; overflow: hidden; background: var(--superficie-2);
-}
-.terreno-barra.fina { height: 6px; border-radius: 3px; }
-.terreno-trozo { display: block; height: 100%; }
-.t-asfalto { background: var(--t-asfalto); }
-.t-pista { background: var(--t-pista); }
-.t-sendero { background: var(--t-sendero); }
-.t-otro { background: var(--t-otro); }
-.terreno-leyenda {
-  list-style: none; margin: 12px 0 0; padding: 0;
-  display: flex; flex-wrap: wrap; gap: 8px 26px;
-}
-.terreno-item {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 0.9rem; color: var(--ink-2);
-}
-.terreno-item b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
-.terreno-color { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.terreno-km { color: var(--ink-mudo); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-
 /* ------------------------------------------------- puntos de interes */
 
 .bloque { margin: 0 0 34px; }
@@ -630,7 +578,6 @@ h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.06em; color
   .ruta .cifras { gap: 16px 0; }
   .punto-item { grid-template-columns: 30px 60px 1fr; gap: 8px; padding: 9px 11px; }
   .punto-icono { width: 26px; height: 26px; }
-  .terreno-leyenda { gap: 6px 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

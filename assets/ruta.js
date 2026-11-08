@@ -58,63 +58,18 @@
   var superpuestas = {};
   L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapa);
 
-  // Trazado. Si la ruta declara el firme, se pinta por tramos y con su
-  // color; si no, una sola linea con el color de acento. En los dos casos
-  // va una linea blanca ancha debajo para que resalte sobre cualquier mapa.
+  // trazado: una linea blanca ancha debajo para que resalte sobre cualquier mapa
+  var puntos = d.trazado || [];
   var estilos = getComputedStyle(document.documentElement);
-  function colorDe(nombre, porDefecto) {
-    return estilos.getPropertyValue(nombre).trim() || porDefecto;
-  }
+  L.polyline(puntos, { color: "#ffffff", weight: 7, opacity: 0.75, lineJoin: "round" }).addTo(mapa);
+  linea = L.polyline(puntos, {
+    color: estilos.getPropertyValue("--acento").trim() || "#2a78d6",
+    weight: 4,
+    opacity: 1,
+    lineJoin: "round",
+  }).addTo(mapa);
 
-  var lineas = [];
-  var grupo = L.featureGroup().addTo(mapa);
-
-  if (d.tramos && d.tramos.length) {
-    d.tramos.forEach(function (t) {
-      if (!t.puntos || t.puntos.length < 2) return;
-      L.polyline(t.puntos, { color: "#ffffff", weight: 7, opacity: 0.75, lineJoin: "round" }).addTo(grupo);
-      lineas.push(
-        L.polyline(t.puntos, {
-          color: colorDe("--t-" + t.tipo, "#898781"),
-          weight: 4,
-          opacity: 1,
-          lineJoin: "round",
-        }).addTo(grupo)
-      );
-    });
-  } else {
-    var puntos = d.trazado || [];
-    L.polyline(puntos, { color: "#ffffff", weight: 7, opacity: 0.75, lineJoin: "round" }).addTo(grupo);
-    lineas.push(
-      L.polyline(puntos, {
-        color: colorDe("--acento", "#2a78d6"),
-        weight: 4,
-        opacity: 1,
-        lineJoin: "round",
-      }).addTo(grupo)
-    );
-  }
-  linea = lineas[0];
-
-  mapa.fitBounds(grupo.getBounds(), { padding: [24, 24] });
-
-  // leyenda del firme sobre el mapa
-  if (d.terreno && d.terreno.length) {
-    var leyenda = L.control({ position: "bottomright" });
-    leyenda.onAdd = function () {
-      var caja = L.DomUtil.create("div", "leyenda-mapa");
-      caja.innerHTML = d.terreno
-        .map(function (x) {
-          return (
-            '<span class="leyenda-item"><span class="leyenda-color t-' + x.tipo +
-            '"></span>' + x.etiqueta + "</span>"
-          );
-        })
-        .join("");
-      return caja;
-    };
-    leyenda.addTo(mapa);
-  }
+  mapa.fitBounds(linea.getBounds(), { padding: [24, 24] });
 
   function icono(clase, html) {
     return L.divIcon({
@@ -176,19 +131,17 @@
 
   cursor = L.marker([0, 0], { icon: icono("cursor-mapa"), zIndexOffset: 900, interactive: false });
 
-  // del mapa al perfil: al pasar por el trazado, se marca el punto del perfil
-  lineas.forEach(function (l) {
-    l.on("mouseover mousemove", function (ev) {
-      var mejor = 0;
-      var mejorD = Infinity;
-      for (var i = 0; i < perfil.length; i++) {
-        var dist = Math.abs(perfil[i][3] - ev.latlng.lat) + Math.abs(perfil[i][4] - ev.latlng.lng);
-        if (dist < mejorD) { mejorD = dist; mejor = i; }
-      }
-      mostrar(perfil[mejor][0]);
-    });
-    l.on("mouseout", ocultar);
+  // del mapa al perfil: al pasar por la linea, se marca el punto del perfil
+  linea.on("mouseover mousemove", function (ev) {
+    var mejor = 0;
+    var mejorD = Infinity;
+    for (var i = 0; i < perfil.length; i++) {
+      var dist = Math.abs(perfil[i][3] - ev.latlng.lat) + Math.abs(perfil[i][4] - ev.latlng.lng);
+      if (dist < mejorD) { mejorD = dist; mejor = i; }
+    }
+    mostrar(perfil[mejor][0]);
   });
+  linea.on("mouseout", ocultar);
   }
 
   function puntoEnKm(metros) {
