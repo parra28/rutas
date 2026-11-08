@@ -281,12 +281,43 @@ h2 { font-size: 1.25rem; }
 .tarjeta:hover { transform: translateY(-2px); box-shadow: var(--sombra); }
 .tarjeta-enlace { text-decoration: none; color: inherit; display: block; }
 .tarjeta-trazo {
+  position: relative;
   background: var(--superficie-2);
   border-bottom: 1px solid var(--linea);
   color: var(--acento);
-  padding: 6px;
+  aspect-ratio: 16 / 7.5;
+  overflow: hidden;
 }
-.tarjeta-trazo .trazo { display: block; width: 100%; height: auto; }
+.tarjeta-trazo .trazo { display: block; width: 100%; height: 100%; padding: 6px; }
+.minimapa {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* el clic debe llegar al enlace de la tarjeta */
+  background: var(--superficie-2);
+}
+.tarjeta-trazo.con-mapa .trazo { visibility: hidden; }
+.distintivo-fotos {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(11, 11, 11, 0.72);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.credito-mapas {
+  margin: -30px 0 40px;
+  font-size: 0.72rem;
+  color: var(--ink-mudo);
+}
+.credito-mapas a { color: inherit; }
 .tarjeta-cuerpo { padding: 14px 16px 16px; }
 .tarjeta-titulo { font-size: 1.05rem; margin: 0 0 2px; letter-spacing: -0.015em; }
 .tarjeta-zona { margin: 0 0 10px; color: var(--ink-mudo); font-size: 0.85rem; }
@@ -558,7 +589,8 @@ h2 { font-size: 1.25rem; }
   overflow: hidden;
 }
 .mapa { height: clamp(320px, 55vh, 560px); background: var(--superficie-2); }
-.leaflet-container { font: inherit; background: var(--superficie-2); }
+.mapa.leaflet-container,
+.minimapa.leaflet-container { font: inherit; background: var(--superficie-2); }
 .marca-mapa {
   width: 14px; height: 14px;
   border-radius: 50%;

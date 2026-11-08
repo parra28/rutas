@@ -153,6 +153,7 @@ src/lib/render.mjs  Plantillas HTML
 src/lib/content.mjs Lectura de las fichas .md
 src/serve.mjs       Servidor local para pruebas
 assets/             CSS y JavaScript del navegador
+  minimapas.js      Convierte la silueta de cada tarjeta en un mapa real
 .github/workflows/  Publicación automática en GitHub Pages
 ```
 
@@ -185,5 +186,12 @@ métricas, incluido el tiempo real en movimiento.
 
 ### Mapas
 
-Capas disponibles: CyclOSM, OpenStreetMap, OpenTopoMap, IGN topográfico y
-ortofoto PNOA del IGN. La atribución de cada una aparece en el propio mapa.
+En la ficha de ruta hay cinco capas: CyclOSM, OpenStreetMap, OpenTopoMap, IGN
+topográfico y ortofoto PNOA del IGN. La atribución de cada una aparece en el
+propio mapa.
+
+Las tarjetas de la portada llevan un mapa en miniatura con el trazado. Se monta
+como mejora progresiva: el HTML trae la silueta en SVG, así que la página se ve
+al instante y también funciona sin JavaScript, y el mapa se carga encima solo
+cuando la tarjeta entra en pantalla. Así no se piden teselas de rutas que nadie
+va a mirar.

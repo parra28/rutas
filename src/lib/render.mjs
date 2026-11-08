@@ -32,6 +32,32 @@ export const TRAMOS_PENDIENTE = [
   { clase: "u4", hasta: Infinity, etiqueta: "> 10%" },
 ];
 
+/** Trazado muy reducido para las miniaturas: no necesitan mas de ~150 puntos. */
+function trazadoMini(trazado, maximo = 150) {
+  if (!trazado || trazado.length === 0) return [];
+  const paso = Math.max(1, Math.ceil(trazado.length / maximo));
+  const out = [];
+  for (let i = 0; i < trazado.length; i += paso) {
+    out.push([Math.round(trazado[i][0] * 1e4) / 1e4, Math.round(trazado[i][1] * 1e4) / 1e4]);
+  }
+  const ult = trazado[trazado.length - 1];
+  out.push([Math.round(ult[0] * 1e4) / 1e4, Math.round(ult[1] * 1e4) / 1e4]);
+  return out;
+}
+
+/** Datos de los trazados que necesitan los minimapas de las tarjetas. */
+function datosMapas(rutas) {
+  const datos = {};
+  for (const r of rutas) datos[r.slug] = trazadoMini(r.trazado);
+  return `<script type="application/json" id="datos-mapas">${JSON.stringify(datos).replace(
+    /</g,
+    "\\u003c"
+  )}</script>`;
+}
+
+const LEAFLET = `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>`;
+
 export function tramoDe(g) {
   for (const t of TRAMOS_PENDIENTE) if (g < t.hasta) return t.clase;
   return "u4";
@@ -128,13 +154,16 @@ function tarjeta(r, base) {
   data-dif="${r.dificultad || 0}"
   data-orden="${r.orden}">
   <a class="tarjeta-enlace" href="${base}ruta/${r.slug}/">
-    ${
-      r.fotos && r.fotos.length
-        ? `<div class="tarjeta-foto"><img src="${base}fotos/${r.slug}/${encodeURIComponent(
-            r.fotos[0].archivo
-          )}" alt="" loading="lazy" decoding="async"></div>`
-        : `<div class="tarjeta-trazo">${r.miniatura}</div>`
-    }
+    <div class="tarjeta-trazo" data-slug="${r.slug}">
+      ${r.miniatura}
+      ${
+        r.fotos && r.fotos.length
+          ? `<span class="distintivo-fotos"><svg aria-hidden="true" viewBox="0 0 24 24" width="13" height="13"><path d="M3 7h3l2-2h8l2 2h3v12H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>${
+              r.fotos.length
+            }</span>`
+          : ""
+      }
+    </div>
     <div class="tarjeta-cuerpo">
       <h2 class="tarjeta-titulo">${esc(r.nombre)}</h2>
       ${r.zona ? `<p class="tarjeta-zona">${esc(r.zona)}</p>` : ""}
@@ -247,6 +276,7 @@ export function paginaIndice({ base, rutas, zonas }) {
     ${rutas.map((r) => tarjeta(r, base)).join("\n")}
   </div>
   <p class="vacio" id="vacio" hidden>Ninguna ruta coincide con los filtros. <button type="button" id="limpiar">Quitar filtros</button></p>
+  <p class="credito-mapas">Mapas de las miniaturas: &copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a></p>
 </section>
 `;
 
@@ -255,7 +285,10 @@ export function paginaIndice({ base, rutas, zonas }) {
     titulo: SITIO,
     descripcion: `${rutas.length} rutas en bici de carretera, gravel y BTT con mapa, perfil de altimetría y descarga del archivo GPX.`,
     contenido,
-    scripts: `<script src="${base}assets/indice.js"></script>`,
+    scripts: `${LEAFLET}
+${datosMapas(rutas)}
+<script src="${base}assets/indice.js"></script>
+<script src="${base}assets/minimapas.js"></script>`,
   });
 }
 
@@ -542,11 +575,11 @@ ${visor}
         ? `${HOST}${base}fotos/${r.slug}/${encodeURIComponent(r.fotos[0].archivo)}`
         : "",
     contenido,
-    scripts: `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    scripts: `${LEAFLET}
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
 <script src="${base}assets/ruta.js"></script>
-${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}`,
+${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}
+${otras.length ? `${datosMapas(otras)}\n<script src="${base}assets/minimapas.js"></script>` : ""}`,
   });
 }
 
