@@ -16,6 +16,7 @@ import {
 
 const SITIO = "Rutómetro";
 const LEMA = "Mis rutas favoritas en bici, listas para descargar";
+const HOST = "https://parra28.github.io";
 
 // Tramos de pendiente: escala divergente (bajada azul / llano gris / subida roja).
 // La luminosidad acompana a la magnitud, asi que tambien se lee sin distinguir
@@ -38,7 +39,7 @@ export function tramoDe(g) {
 
 // ------------------------------------------------------------------- esqueleto
 
-function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", clase = "" }) {
+function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", clase = "", imagen = "" }) {
   const tituloCompleto = titulo === SITIO ? `${SITIO} · ${LEMA}` : `${titulo} · ${SITIO}`;
   return `<!doctype html>
 <html lang="es" class="${clase}">
@@ -50,6 +51,7 @@ function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", clas
 <meta property="og:title" content="${esc(titulo)}">
 <meta property="og:description" content="${esc(descripcion)}">
 <meta property="og:type" content="website">
+${imagen ? `<meta property="og:image" content="${esc(imagen)}">\n<meta name="twitter:card" content="summary_large_image">` : ""}
 <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="${base}assets/styles.css">
@@ -126,7 +128,13 @@ function tarjeta(r, base) {
   data-dif="${r.dificultad || 0}"
   data-orden="${r.orden}">
   <a class="tarjeta-enlace" href="${base}ruta/${r.slug}/">
-    <div class="tarjeta-trazo">${r.miniatura}</div>
+    ${
+      r.fotos && r.fotos.length
+        ? `<div class="tarjeta-foto"><img src="${base}fotos/${r.slug}/${encodeURIComponent(
+            r.fotos[0].archivo
+          )}" alt="" loading="lazy" decoding="async"></div>`
+        : `<div class="tarjeta-trazo">${r.miniatura}</div>`
+    }
     <div class="tarjeta-cuerpo">
       <h2 class="tarjeta-titulo">${esc(r.nombre)}</h2>
       ${r.zona ? `<p class="tarjeta-zona">${esc(r.zona)}</p>` : ""}
@@ -368,6 +376,18 @@ export function paginaRuta({ base, r, otras }) {
     ? { valor: duracion(r.tiempoMovimiento), nota: "real, en movimiento" }
     : { valor: duracion(r.tiempoEstimado), nota: "estimado" };
 
+  const visor = (r.fotos && r.fotos.length)
+    ? `<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  <button type="button" class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&times;</button>
+  <button type="button" class="visor-nav visor-antes" id="visor-antes" aria-label="Foto anterior">&#8249;</button>
+  <figure class="visor-figura">
+    <img id="visor-img" src="" alt="">
+    <figcaption id="visor-pie"></figcaption>
+  </figure>
+  <button type="button" class="visor-nav visor-despues" id="visor-despues" aria-label="Foto siguiente">&#8250;</button>
+</div>`
+    : "";
+
   const stats = `
 <dl class="datos">
   ${dato("Distancia", `${km(r.distancia)} <small>km</small>`)}
@@ -444,6 +464,29 @@ export function paginaRuta({ base, r, otras }) {
     }
 
     ${
+      r.fotos && r.fotos.length
+        ? `<section class="bloque">
+      <h2>Fotos</h2>
+      <div class="galeria" id="galeria">
+        ${r.fotos
+          .map(
+            (f, i) =>
+              `<button type="button" class="galeria-item" data-indice="${i}" aria-label="Ampliar foto ${
+                i + 1
+              }${f.pie ? `: ${esc(f.pie)}` : ""}">
+            <img src="${base}fotos/${r.slug}/${encodeURIComponent(f.archivo)}" alt="${esc(
+                f.pie
+              )}" loading="lazy" decoding="async">
+            ${f.pie ? `<span class="galeria-pie">${esc(f.pie)}</span>` : ""}
+          </button>`
+          )
+          .join("")}
+      </div>
+    </section>`
+        : ""
+    }
+
+    ${
       practicos.length
         ? `<section class="bloque">
       <h2>Datos prácticos</h2>
@@ -473,6 +516,7 @@ export function paginaRuta({ base, r, otras }) {
     }
   </div>
 </article>
+${visor}
 `;
 
   const datosRuta = JSON.stringify({
@@ -493,11 +537,16 @@ export function paginaRuta({ base, r, otras }) {
       r.zona ? ` por ${r.zona}` : ""
     }. Mapa, perfil de altimetría y descarga del GPX.`,
     ruta: true,
+    imagen:
+      r.fotos && r.fotos.length
+        ? `${HOST}${base}fotos/${r.slug}/${encodeURIComponent(r.fotos[0].archivo)}`
+        : "",
     contenido,
     scripts: `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
-<script src="${base}assets/ruta.js"></script>`,
+<script src="${base}assets/ruta.js"></script>
+${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}`,
   });
 }
 

@@ -30,6 +30,42 @@ function aviso(msg) {
   console.warn(`  ! ${msg}`);
 }
 
+const EXT_FOTO = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+const PESO_AVISO = 1_500_000; // 1,5 MB por foto
+
+/**
+ * Busca las fotos de una ruta en rutas/<nombre-base>/.
+ * El orden es alfabetico, asi que conviene numerarlas: 01-..., 02-...
+ * Si el nombre lleva " - ", lo que va detras se usa como pie de foto.
+ */
+async function cargarFotos(nombreBase) {
+  const carpeta = path.join(DIR_RUTAS, nombreBase);
+  if (!existsSync(carpeta)) return [];
+  const entradas = (await readdir(carpeta))
+    .filter((f) => EXT_FOTO.includes(path.extname(f).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+
+  const fotos = [];
+  for (const archivo of entradas) {
+    const info = await stat(path.join(carpeta, archivo));
+    if (info.size > PESO_AVISO) {
+      aviso(
+        `${nombreBase}/${archivo} pesa ${pesoLegible(info.size)}: reducela antes de publicarla ` +
+          `(1600 px de ancho basta de sobra para la web)`
+      );
+    }
+    const sinExt = archivo.slice(0, -path.extname(archivo).length);
+    const guion = sinExt.indexOf(" - ");
+    fotos.push({
+      archivo,
+      origen: path.join(carpeta, archivo),
+      pie: guion > -1 ? sinExt.slice(guion + 3).trim() : "",
+      peso: info.size,
+    });
+  }
+  return fotos;
+}
+
 function pesoLegible(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -87,6 +123,7 @@ async function cargarRutas() {
       }
 
       const ligero = gpxLigero(points, nombre);
+      const fotos = await cargarFotos(nombreBase);
 
       rutas.push({
         ...metricas,
@@ -109,6 +146,7 @@ async function cargarRutas() {
         tipoRecorrido: meta.recorrido || metricas.tipoRecorrido,
         descripcionHtml: markdown(cuerpo),
         waypoints,
+        fotos,
         pesoGpx: pesoLegible(Buffer.byteLength(ligero.xml)),
         pesoOriginal: pesoLegible(original.size),
         gpxLigero: ligero.xml,
@@ -187,6 +225,10 @@ async function generar() {
       paginaRuta({ base: BASE, r, otras })
     );
     await escribir(path.join(DIR_SALIDA, "gpx", `${r.slug}.gpx`), r.gpxLigero);
+    for (const foto of r.fotos) {
+      await mkdir(path.join(DIR_SALIDA, "fotos", r.slug), { recursive: true });
+      await cp(foto.origen, path.join(DIR_SALIDA, "fotos", r.slug, foto.archivo));
+    }
   }
 
   // assets
@@ -213,7 +255,11 @@ async function generar() {
   );
 
   // resumen
-  console.log(`\n  ${rutas.length} ruta(s), ${zonas.length} zona(s)`);
+  const totalFotos = rutas.reduce((a, r) => a + r.fotos.length, 0);
+  console.log(
+    `\n  ${rutas.length} ruta(s), ${zonas.length} zona(s)` +
+      (totalFotos ? `, ${totalFotos} foto(s)` : "")
+  );
   if (avisos.length) console.log(`  ${avisos.length} aviso(s)`);
   if (errores.length) {
     console.error(`\n  ${errores.length} ruta(s) no se han podido procesar:`);

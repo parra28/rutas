@@ -355,6 +355,96 @@ h2 { font-size: 1.25rem; }
   text-decoration: underline;
 }
 
+/* --------------------------------------------------------------- fotos */
+
+.tarjeta-foto {
+  border-bottom: 1px solid var(--linea);
+  background: var(--superficie-2);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.tarjeta-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.galeria-item {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--superficie-2);
+  cursor: zoom-in;
+  aspect-ratio: 4 / 3;
+}
+.galeria-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.18s ease;
+}
+.galeria-item:hover img { transform: scale(1.03); }
+.galeria-pie {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 16px 10px 7px;
+  font-size: 0.76rem;
+  color: #fff;
+  text-align: left;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+}
+
+.visor {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.visor[hidden] { display: none; }
+.visor-figura { margin: 0; max-width: 100%; max-height: 100%; text-align: center; }
+.visor-figura img {
+  max-width: 100%;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+  margin: 0 auto;
+}
+.visor-figura figcaption {
+  color: #f0efec;
+  font-size: 0.88rem;
+  margin-top: 12px;
+  max-width: 60ch;
+  margin-inline: auto;
+}
+.visor-cerrar, .visor-nav {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.visor-cerrar { top: 14px; right: 14px; width: 44px; height: 44px; font-size: 1.8rem; }
+.visor-nav { top: 50%; transform: translateY(-50%); width: 48px; height: 48px; font-size: 2.2rem; }
+.visor-antes { left: 14px; }
+.visor-despues { right: 14px; }
+.visor-cerrar:hover, .visor-nav:hover { background: rgba(255, 255, 255, 0.25); }
+.visor-nav[hidden] { display: none; }
+
 /* ----------------------------------------------------------- ficha ruta */
 
 .migas { font-size: 0.85rem; color: var(--ink-mudo); padding: 18px 0 10px; }

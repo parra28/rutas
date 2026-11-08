@@ -55,7 +55,31 @@ son duros, dónde parar. Admite títulos con `##`, listas con guion,
 - Ojo al paso canadiense del km 14.
 ```
 
-### 3. Sube los cambios
+### 3. Añade fotos (opcional)
+
+Crea una carpeta **con el mismo nombre** que el GPX y mete dentro las imágenes:
+
+```
+rutas/navacerrada-por-la-barranca/
+  01 - Salida desde el aparcamiento.jpg
+  02 - El falso llano del km 9.jpg
+  03.jpg
+```
+
+- Se ordenan por nombre de archivo: numéralas con `01`, `02`, `03`.
+- Lo que escribas **después de " - "** se usa como pie de foto. Si no pones
+  guion, la foto sale sin pie.
+- Formatos: `.jpg`, `.png`, `.webp`, `.avif`.
+- La primera foto es la que sale en la tarjeta de la portada y la que se ve
+  al compartir el enlace por WhatsApp o Telegram.
+- **Redúcelas antes de subirlas**: 1600 px de ancho sobra para la web. El build
+  avisa de cualquier foto que pase de 1,5 MB. No se redimensionan solas, así
+  que una foto de 5 MB se publica tal cual y la ficha tarda en cargar.
+
+Si una ruta no tiene carpeta de fotos, la tarjeta muestra la silueta del
+trazado, como hasta ahora.
+
+### 4. Sube los cambios
 
 ```bash
 git add rutas/ && git commit -m "Añadir ruta: Navacerrada por La Barranca" && git push
