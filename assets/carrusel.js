@@ -20,7 +20,6 @@
         t.classList.toggle("activo", j === i);
         t.setAttribute("aria-selected", j === i ? "true" : "false");
       });
-      if (i === 1) montarMapa();
     }
 
     tabs.forEach(function (t, i) {
@@ -33,13 +32,41 @@
     // seguir el desplazamiento para saber que diapositiva se esta viendo
     var pendiente = null;
     pista.addEventListener("scroll", function () {
+      // oculto por un filtro: el ancho es cero y la cuenta no vale nada
+      if (!pista.clientWidth) return;
       if (pendiente) return;
       pendiente = requestAnimationFrame(function () {
         pendiente = null;
+        if (!pista.clientWidth) return;
         var i = Math.round(pista.scrollLeft / pista.clientWidth);
         marcar(Math.max(0, Math.min(diapos.length - 1, i)));
       });
     }, { passive: true });
+
+    // Al filtrar, las filas se ocultan y se vuelven a mostrar: el navegador
+    // pierde la posicion del deslizable y las pestañas se quedaban mintiendo.
+    c.volverAlInicio = function () {
+      pista.scrollLeft = 0;
+      marcar(0);
+    };
+
+    // El mapa es la vista por defecto, asi que se monta en cuanto la fila
+    // asoma por la pantalla, no al deslizar.
+    if ("IntersectionObserver" in window) {
+      var vigia = new IntersectionObserver(
+        function (entradas) {
+          entradas.forEach(function (e) {
+            if (!e.isIntersecting) return;
+            vigia.unobserve(e.target);
+            montarMapa();
+          });
+        },
+        { rootMargin: "300px" }
+      );
+      vigia.observe(c);
+    } else {
+      montarMapa();
+    }
 
     function montarMapa() {
       if (montado || typeof L === "undefined" || !datos) return;
@@ -76,5 +103,11 @@
         mapa.fitBounds(linea.getBounds(), { padding: [12, 12] });
       }, 60);
     }
+  });
+
+  document.addEventListener("rutometro:filtrado", function () {
+    carruseles.forEach(function (c) {
+      if (c.volverAlInicio) c.volverAlInicio();
+    });
   });
 })();

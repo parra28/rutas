@@ -139,6 +139,19 @@ a { color: inherit; }
 }
 .contador { margin: 16px 0 0; }
 
+/* ------------------------------------------------- tipo de bici */
+
+.tipo {
+  display: inline-block;
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background: var(--tinta); color: var(--papel);
+  padding: 4px 9px 3px; line-height: 1;
+  vertical-align: 0.34em;
+}
+.ruta-titulo-fila { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ficha-cabeza .tipo { margin-bottom: 12px; vertical-align: baseline; }
+
 /* ------------------------------------------------------------ filas ruta */
 
 .ruta-fila { border-top: 1px solid var(--filete); }
@@ -181,12 +194,12 @@ a { color: inherit; }
 .diapo {
   scroll-snap-align: start;
   position: relative;
-  height: 200px;
+  height: 240px;
   background: var(--filete);
   overflow: hidden;
 }
 .diapo-enlace { display: block; height: 100%; background: var(--papel); }
-.diapo .silueta { height: 200px; }
+.diapo .silueta { height: 240px; }
 .diapo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .diapo-pie {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 20px 10px 8px;
@@ -195,6 +208,7 @@ a { color: inherit; }
   background: linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,0));
 }
 .minimapa { height: 100%; background: var(--filete); }
+.diapo:first-child { background: var(--filete); }
 .minimapa.leaflet-container { background: var(--filete); }
 .carrusel-tabs { display: flex; flex-wrap: wrap; gap: 16px; padding: 9px 0 16px; }
 .carrusel-tab {
@@ -250,10 +264,16 @@ a { color: inherit; }
 }
 .descarga { text-align: right; }
 .boton {
-  display: inline-block; background: var(--tinta); color: var(--papel);
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--tinta); color: var(--papel);
   text-decoration: none; padding: 14px 26px; font-weight: 600; border: 0; cursor: pointer;
 }
+.boton.principal {
+  background: var(--acento); color: var(--sobre-acento);
+  font-size: 17px; padding: 17px 30px; letter-spacing: -0.01em;
+}
 .boton:hover { background: var(--acento); color: var(--sobre-acento); }
+.boton.principal:hover { background: var(--tinta); color: var(--papel); }
 .peso { margin: 8px 0 0; }
 .cifras {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
@@ -386,7 +406,7 @@ a { color: inherit; }
 /* ------------------------------------------------------------- pantallas */
 
 @media (max-width: 760px) {
-  .diapo, .diapo .silueta { height: 150px; }
+  .diapo, .diapo .silueta { height: 170px; }
   .carrusel-tabs { gap: 12px; }
   .ruta-cabeza { padding-bottom: 10px; }
   .ficha-cabeza { grid-template-columns: 1fr; }

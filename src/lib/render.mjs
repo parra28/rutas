@@ -148,8 +148,15 @@ function tiempos(r) {
   return [{ etiqueta: "Tiempo estimado", valor: duracion(r.tiempoEstimado) }];
 }
 
+/** Distintivo del tipo de bici: lo primero que debe verse de una ruta. */
+function distintivo(r) {
+  const b = TIPOS_BICI[r.bici];
+  if (!b) return "";
+  return `<span class="tipo tipo-${esc(r.bici)}">${esc(b.etiqueta)}</span>`;
+}
+
 function meta(r) {
-  const partes = [r.zona, TIPOS_BICI[r.bici] && TIPOS_BICI[r.bici].etiqueta, TIPOS_RECORRIDO[r.tipoRecorrido]];
+  const partes = [r.zona, TIPOS_RECORRIDO[r.tipoRecorrido]];
   if (r.dificultad) partes.push(DIFICULTADES[r.dificultad]);
   if (r.fotos && r.fotos.length) partes.push(`${r.fotos.length} ${r.fotos.length === 1 ? "foto" : "fotos"}`);
   if (r.video) partes.push("vídeo");
@@ -226,7 +233,10 @@ function fila(r, base, { numero = null } = {}) {
       <div class="ruta-ident">
         ${numero !== null ? `<span class="ruta-num mono">${String(numero).padStart(2, "0")}</span>` : ""}
         <div>
-          <h2 class="nombre">${esc(r.nombre)}</h2>
+          <div class="ruta-titulo-fila">
+            ${distintivo(r)}
+            <h2 class="nombre">${esc(r.nombre)}</h2>
+          </div>
           <div class="ruta-meta">${meta(r)}</div>
         </div>
       </div>
@@ -249,20 +259,20 @@ function fila(r, base, { numero = null } = {}) {
 function carrusel(r, base) {
   const fotos = (r.fotos || []).slice(0, 4);
   const diapos = [
-    `<div class="diapo" id="d-${r.slug}-0"><a class="diapo-enlace" href="${base}ruta/${r.slug}/" aria-label="Ver ${esc(
+    `<div class="diapo"><div class="minimapa" data-slug="${esc(r.slug)}"></div></div>`,
+    `<div class="diapo"><a class="diapo-enlace" href="${base}ruta/${r.slug}/" aria-label="Ver ${esc(
       r.nombre
     )}">${silueta(r.perfil)}</a></div>`,
-    `<div class="diapo" id="d-${r.slug}-1"><div class="minimapa" data-slug="${esc(r.slug)}"></div></div>`,
     ...fotos.map(
       (f, i) =>
-        `<div class="diapo" id="d-${r.slug}-${i + 2}"><img src="${base}fotos/${r.slug}/${encodeURIComponent(
+        `<div class="diapo"><img src="${base}fotos/${r.slug}/${encodeURIComponent(
           f.archivo
         )}" alt="${esc(f.pie)}" loading="lazy" decoding="async">${
           f.pie ? `<span class="diapo-pie">${esc(f.pie)}</span>` : ""
         }</div>`
     ),
   ];
-  const nombres = ["Desnivel", "Mapa", ...fotos.map((f, i) => `Foto ${i + 1}`)];
+  const nombres = ["Mapa", "Desnivel", ...fotos.map((f, i) => `Foto ${i + 1}`)];
 
   return `<div class="carrusel" data-slug="${esc(r.slug)}">
   <div class="carrusel-pista">${diapos.join("")}</div>
@@ -422,11 +432,15 @@ export function paginaRuta({ base, r, otras, ver = "" }) {
     <nav class="migas"><a href="${base}">Rutas</a> <span class="sep">/</span> <span>${esc(r.nombre)}</span></nav>
     <header class="ficha-cabeza">
       <div>
+        ${distintivo(r)}
         <h1 class="nombre titular">${esc(r.nombre)}</h1>
         <div class="ruta-meta grande">${meta(r)}</div>
       </div>
       <div class="descarga">
-        <a class="boton" href="${base}gpx/${r.slug}.gpx" download>Descargar GPX</a>
+        <a class="boton principal" href="${base}gpx/${r.slug}.gpx" download>
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Descargar GPX
+        </a>
         <p class="peso mono">${esc(r.pesoGpx)} · ${entero(r.numPuntos)} puntos</p>
       </div>
     </header>

@@ -16,7 +16,7 @@ import { parseGpx, analizar, gpxLigero, crearLocalizador } from "./lib/gpx.mjs";
 import { resolverPuntos, puntosDelGpx } from "./lib/puntos.mjs";
 import { parseFicha, markdown, slugify, esc } from "./lib/content.mjs";
 import { paginaIndice, paginaRuta } from "./lib/render.mjs";
-import { TIPOS_BICI, km, entero } from "./lib/formato.mjs";
+import { TIPOS_BICI, ALIAS_BICI, km, entero } from "./lib/formato.mjs";
 
 const RAIZ = path.resolve(import.meta.dirname, "..");
 const DIR_RUTAS = path.join(RAIZ, "rutas");
@@ -106,7 +106,12 @@ async function cargarRutas() {
         aviso(`${fichero} no tiene ficha ${nombreBase}.md: se usan solo los datos del GPX`);
       }
 
-      const bici = String(meta.bici || "").toLowerCase();
+      let bici = String(meta.bici || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if (ALIAS_BICI[bici]) bici = ALIAS_BICI[bici];
       if (bici && !TIPOS_BICI[bici]) {
         aviso(`${nombreBase}: tipo de bici desconocido "${bici}" (validos: ${Object.keys(TIPOS_BICI).join(", ")})`);
       }

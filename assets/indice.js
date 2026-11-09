@@ -74,6 +74,10 @@
           : visibles + " de " + filas.length + " rutas";
     }
     if (vacio) vacio.hidden = visibles !== 0;
+
+    // los deslizables vuelven a su primera vista: si no, las pestañas se
+    // quedan marcando una diapositiva que ya no es la que se ve
+    document.dispatchEvent(new CustomEvent("rutometro:filtrado"));
   }
 
   [buscar, zona, dist, dplus, dif].forEach(function (el) {

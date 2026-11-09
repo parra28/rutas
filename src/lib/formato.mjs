@@ -3,9 +3,12 @@
 export const TIPOS_BICI = {
   carretera: { etiqueta: "Carretera", slot: 1 },
   gravel: { etiqueta: "Gravel", slot: 2 },
-  btt: { etiqueta: "BTT", slot: 3 },
+  btt: { etiqueta: "MTB", slot: 3 },
   cicloturismo: { etiqueta: "Cicloturismo", slot: 4 },
 };
+
+/** Nombres alternativos que se aceptan en la ficha. */
+export const ALIAS_BICI = { mtb: "btt", btt: "btt", montana: "btt", road: "carretera", ruta: "carretera" };
 
 export const TIPOS_RECORRIDO = {
   circular: "Circular",
