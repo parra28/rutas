@@ -7,6 +7,8 @@ dificultad: 3
 fecha: 2025-07-06
 parking: Las Colonias
 tags: [gravel, circular, sierra norte, cazalla, san nicolas del puerto, alanis, cordeles, via pecuaria]
+puntos:
+  - 52,7 | desayuno | Parada a desayunar en San Nicolás del Puerto
 ---
 
 ## Por los cordeles de la Sierra Norte
@@ -40,3 +42,5 @@ son repechos cortos y falsos llanos encadenados. Las rampas máximas rozan el
   En esta sierra y en esa época, salir temprano no es una opción.
 - Tres horas y tres cuartos en movimiento, cuatro horas y media contando
   paradas.
+- El desayuno cae en San Nicolás del Puerto, en el km 52,7, justo antes del
+  tramo que lleva de vuelta a Cazalla.
