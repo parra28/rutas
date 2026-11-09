@@ -152,7 +152,9 @@ function tiempos(r) {
 function distintivo(r) {
   const b = TIPOS_BICI[r.bici];
   if (!b) return "";
-  return `<span class="tipo tipo-${esc(r.bici)}">${esc(b.etiqueta)}</span>`;
+  return `<span class="tipo tipo-${esc(r.bici)}">${
+    b.icono ? `<svg class="tipo-icono" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">${b.icono}</svg>` : ""
+  }${esc(b.etiqueta)}</span>`;
 }
 
 function meta(r) {
