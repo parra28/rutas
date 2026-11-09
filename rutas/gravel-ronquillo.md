@@ -8,6 +8,9 @@ fecha: 2026-03-07
 desnivel: 1384
 parking: La Algaba
 tags: [gravel, circular, guillena, gerena, las pajanosas, trialera]
+puntos:
+  - 58,2 | desayuno | Parada a desayunar en El Ronquillo
+  - 86,4 | fuente
 ---
 
 ## El recorrido
