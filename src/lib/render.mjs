@@ -161,7 +161,7 @@ function meta(r) {
   const partes = [r.zona, TIPOS_RECORRIDO[r.tipoRecorrido]];
   if (r.dificultad) partes.push(DIFICULTADES[r.dificultad]);
   if (r.fotos && r.fotos.length) partes.push(`${r.fotos.length} ${r.fotos.length === 1 ? "foto" : "fotos"}`);
-  if (r.video) partes.push("vídeo");
+  if (r.videos && r.videos.length) partes.push(r.videos.length === 1 ? "vídeo" : `${r.videos.length} vídeos`);
   return partes.filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('<span class="sep">/</span>');
 }
 
@@ -407,7 +407,8 @@ ${datosMapas(rutas)}
 
 export function paginaRuta({ base, r, otras, ver = "" }) {
   const v = ver ? `?v=${ver}` : "";
-  const video = analizarVideo(r.video);
+  const videos = (r.videos || []).map(analizarVideo).filter(Boolean);
+  const vídeosDesconocidos = (r.videos || []).length - videos.length;
   const t = tiempos(r);
 
   const practicos = [
@@ -512,19 +513,27 @@ export function paginaRuta({ base, r, otras, ver = "" }) {
     }
 
     ${
-      video
+      videos.length
         ? `<section class="bloque">
-      <h2>Vídeo</h2>
-      <div class="video${video.vertical ? " vertical" : ""}" id="video"
-           data-incrustar="${esc(video.incrustar)}" data-plataforma="${esc(video.plataforma)}">
-        <div class="video-marco">
-          <button type="button" class="video-boton">
-            <span class="video-play" aria-hidden="true">▶</span>
-            <span class="video-texto">Ver el vídeo<small>Se carga desde ${esc(video.plataforma)} al pulsar</small></span>
-          </button>
-        </div>
+      <h2>${videos.length === 1 ? "Vídeo" : "Vídeos"}</h2>
+      <div class="videos">
+        ${videos
+          .map(
+            (vi) => `<figure class="video${vi.vertical ? " vertical" : ""}"
+             data-incrustar="${esc(vi.incrustar)}" data-plataforma="${esc(vi.plataforma)}">
+          <div class="video-marco">
+            <button type="button" class="video-boton">
+              <span class="video-play" aria-hidden="true">▶</span>
+              <span class="video-texto">Ver el vídeo<small>Se carga desde ${esc(vi.plataforma)} al pulsar</small></span>
+            </button>
+          </div>
+          <figcaption class="video-enlace"><a href="${esc(vi.enlace)}" rel="noopener noreferrer" target="_blank">Abrir en ${esc(
+              vi.plataforma
+            )}</a></figcaption>
+        </figure>`
+          )
+          .join("")}
       </div>
-      <p class="video-enlace"><a href="${esc(video.enlace)}" rel="noopener noreferrer" target="_blank">Abrir en ${esc(video.plataforma)}</a></p>
     </section>`
         : ""
     }
@@ -589,7 +598,7 @@ ${visor}
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
 <script src="${base}assets/ruta.js${v}"></script>
 ${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js${v}"></script>` : ""}
-${video ? `<script src="${base}assets/video.js${v}"></script>` : ""}
+${videos.length ? `<script src="${base}assets/video.js${v}"></script>` : ""}
 ${otras.length ? `${datosMapas(otras)}\n<script src="${base}assets/carrusel.js${v}"></script>` : ""}`,
     ver,
   });

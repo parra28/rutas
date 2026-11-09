@@ -178,7 +178,10 @@ async function cargarRutas() {
         superficie: meta.superficie || "",
         agua: meta.agua || "",
         fecha: meta.fecha || "",
-        video: meta.video || "",
+        videos: []
+          .concat(meta.videos || [], meta.video || [])
+          .map((x) => String(x).trim())
+          .filter(Boolean),
         avisos: meta.avisos || "",
         tipoRecorrido: meta.recorrido || metricas.tipoRecorrido,
         descripcionHtml: markdown(cuerpo),

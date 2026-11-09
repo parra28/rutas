@@ -132,6 +132,14 @@ En los metadatos, con la URL de Instagram o de YouTube:
 video: https://www.instagram.com/reel/DIt3B5xI-kx/
 ```
 
+Si hay más de uno, en lista:
+
+```yaml
+videos:
+  - https://www.instagram.com/reel/C87DW5joSDZ/
+  - https://www.instagram.com/reel/C9DYuoFo56w/
+```
+
 Funciona con reels y publicaciones de Instagram y con vídeos y shorts de
 YouTube. El vídeo sale centrado, y **no se carga hasta que el visitante
 pulsa el botón**: así la página no pide nada a Instagram ni a YouTube solo
@@ -185,6 +193,7 @@ se usan en el perfil y en los filtros.
 | `puntos` | no | Lista de puntos de interés. Ver más arriba. |
 | `avisos` | no | Peligros o cosas a tener en cuenta. Sale destacado. |
 | `video` | no | URL de un reel de Instagram o un vídeo de YouTube. |
+| `videos` | no | Lista de URL, si hay más de un vídeo. |
 | `recorrido` | no | Fuerza `circular`, `lineal` o `ida-vuelta` si la detección falla. |
 | `slug` | no | Fuerza la URL de la ruta. |
 
