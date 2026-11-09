@@ -14,7 +14,6 @@ import path from "node:path";
 import { parseGpx, analizar, gpxLigero, crearLocalizador } from "./lib/gpx.mjs";
 import { resolverPuntos, puntosDelGpx } from "./lib/puntos.mjs";
 import { parseFicha, markdown, slugify, esc } from "./lib/content.mjs";
-import { miniatura } from "./lib/thumb.mjs";
 import { paginaIndice, paginaRuta } from "./lib/render.mjs";
 import { TIPOS_BICI, km, entero } from "./lib/formato.mjs";
 
@@ -183,7 +182,6 @@ async function cargarRutas() {
         pesoGpx: pesoLegible(Buffer.byteLength(ligero.xml)),
         pesoOriginal: pesoLegible(original.size),
         gpxLigero: ligero.xml,
-        miniatura: miniatura(metricas.trazado),
       });
       console.log(
         `  + ${nombre}  ${km(metricas.distancia)} km / ${entero(metricas.desnivelPositivo)} m D+  ` +

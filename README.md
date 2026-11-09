@@ -209,6 +209,21 @@ GitHub Actions en cada push.
 
 ---
 
+## El diseño
+
+Tinta sobre papel, filetes de un píxel, sin esquinas redondeadas, sin sombras
+y sin degradados. Todo lo que es dato va en monoespaciada, como la pantalla de
+un ciclocomputador; los nombres, en grotesca pesada.
+
+Hay **un solo elemento atrevido**: el perfil de altimetría, convertido en una
+silueta maciza en bermellón que va a sangre de lado a lado. Es lo que hace
+reconocible cada ruta antes de leer su nombre. El resto de la página se
+mantiene callado a propósito.
+
+La única animación de toda la web es el cambio de color de la silueta al pasar
+por encima de una ruta, y está ahí porque informa de qué fila señalas, no por
+adorno.
+
 ## Cómo está hecho
 
 Sin dependencias, sin `npm install`, sin framework. Solo Node y un poco de
@@ -225,7 +240,6 @@ src/lib/puntos.mjs  Puntos de interés: tipos y colocación sobre la ruta
 src/lib/video.mjs   Reconoce las URL de vídeo y cómo incrustarlas
 src/serve.mjs       Servidor local para pruebas
 assets/             CSS y JavaScript del navegador
-  minimapas.js      Convierte la silueta de cada tarjeta en un mapa real
 .github/workflows/  Publicación automática en GitHub Pages
 ```
 
@@ -285,8 +299,6 @@ En la ficha de ruta hay cinco capas: CyclOSM, OpenStreetMap, OpenTopoMap, IGN
 topográfico y ortofoto PNOA del IGN. La atribución de cada una aparece en el
 propio mapa.
 
-Las tarjetas de la portada llevan un mapa en miniatura con el trazado. Se monta
-como mejora progresiva: el HTML trae la silueta en SVG, así que la página se ve
-al instante y también funciona sin JavaScript, y el mapa se carga encima solo
-cuando la tarjeta entra en pantalla. Así no se piden teselas de rutas que nadie
-va a mirar.
+En la portada no hay mapas: cada ruta se reconoce por la silueta de su perfil,
+que se genera en el build como un SVG. Así la portada no pide una sola tesela
+y carga al instante.

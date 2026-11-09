@@ -1,11 +1,13 @@
 // Rutometro - plantillas HTML.
 //
-// Estructura inspirada en las paginas de actividad de Strava: las cifras
-// primero, el mapa grande como protagonista, el perfil pegado debajo y el
-// resto del contenido en bloques apilados.
+// Lenguaje visual: tinta sobre papel, filetes de un pixel, sin esquinas
+// redondeadas, sin sombras y sin degradados. Los datos van en monoespaciada,
+// como la pantalla de un ciclocomputador.
+//
+// Un solo elemento atrevido: el perfil de altimetria como silueta maciza en
+// bermellon, a sangre. Todo lo demas se mantiene callado.
 
 import { esc, markdown } from "./content.mjs";
-import { miniatura } from "./thumb.mjs";
 import { TIPOS_PUNTO } from "./puntos.mjs";
 import { analizarVideo } from "./video.mjs";
 import {
@@ -20,57 +22,125 @@ import {
 } from "./formato.mjs";
 
 const SITIO = "Rutómetro";
-const LEMA = "Mis rutas favoritas en bici, listas para descargar";
+const LEMA = "Rutas propias trazadas sobre el terreno. Cada una con su perfil, sus paradas y el GPX listo para descargar.";
 const HOST = "https://parra28.github.io";
+
+const FUENTES = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">`;
 
 const LEAFLET = `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>`;
 
-// Tramos de pendiente: escala divergente (bajada azul / llano gris / subida
-// roja). La luminosidad acompana a la magnitud, asi que tambien se lee sin
-// distinguir los colores.
-export const TRAMOS_PENDIENTE = [
-  { clase: "d4", hasta: -8, etiqueta: "≤ -8%" },
-  { clase: "d3", hasta: -4, etiqueta: "-8 a -4%" },
-  { clase: "d2", hasta: -1.5, etiqueta: "-4 a -1,5%" },
-  { clase: "f0", hasta: 1.5, etiqueta: "llano" },
-  { clase: "u1", hasta: 4, etiqueta: "1,5 a 4%" },
-  { clase: "u2", hasta: 7, etiqueta: "4 a 7%" },
-  { clase: "u3", hasta: 10, etiqueta: "7 a 10%" },
-  { clase: "u4", hasta: Infinity, etiqueta: "> 10%" },
-];
+// ------------------------------------------------------------------ silueta
 
-export function tramoDe(g) {
-  for (const t of TRAMOS_PENDIENTE) if (g < t.hasta) return t.clase;
-  return "u4";
-}
+/**
+ * El perfil como silueta maciza. Es la pieza grafica del sitio.
+ * Con `hero` ademas lleva las paradas atravesandola y la regla de kilometros,
+ * y los nodos que el JavaScript usa para seguir el cursor.
+ */
+function silueta(perfil, { puntos = [], hero = false } = {}) {
+  const W = 1000;
+  const H = 240;
+  const dTotal = perfil[perfil.length - 1][0];
+  const eles = perfil.map((p) => p[1]).filter((e) => e !== null);
+  if (eles.length === 0) return "";
+  const techo = Math.max(...eles);
+  const suelo = Math.min(...eles);
+  const rango = Math.max(40, techo - suelo);
+  const base = suelo - rango * 0.3;
+  const alto = techo + rango * 0.12;
 
-/** Trazado muy reducido para las miniaturas: no necesitan mas de ~150 puntos. */
-function trazadoMini(trazado, maximo = 150) {
-  if (!trazado || trazado.length === 0) return [];
-  const paso = Math.max(1, Math.ceil(trazado.length / maximo));
-  const out = [];
-  for (let i = 0; i < trazado.length; i += paso) {
-    out.push([Math.round(trazado[i][0] * 1e4) / 1e4, Math.round(trazado[i][1] * 1e4) / 1e4]);
+  const X = (d) => (d / dTotal) * W;
+  const Y = (e) => H - ((e - base) / (alto - base)) * H;
+
+  const d =
+    `M0,${H} ` +
+    perfil.map((p) => `L${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ") +
+    ` L${W},${H} Z`;
+
+  if (!hero) {
+    return `<svg class="silueta" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}"/></svg>`;
   }
-  const ult = trazado[trazado.length - 1];
-  out.push([Math.round(ult[0] * 1e4) / 1e4, Math.round(ult[1] * 1e4) / 1e4]);
-  return out;
+
+  const kmTotal = dTotal / 1000;
+  const paso = kmTotal > 100 ? 20 : kmTotal > 40 ? 10 : kmTotal > 15 ? 5 : 2;
+  const marcas = [];
+  for (let k = paso; k < kmTotal; k += paso) marcas.push(k);
+
+  const reglas = puntos
+    .map((pt) => {
+      const x = X(Math.min(pt.metros, dTotal));
+      return `<line class="corte${pt.aviso ? " es-aviso" : ""}" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${H}"><title>${esc(
+        `${pt.etiqueta} · km ${decimal(pt.km)}`
+      )}</title></line>`;
+    })
+    .join("");
+
+  const etiquetas = puntos
+    .map((pt) => {
+      const pos = Math.min(pt.metros, dTotal) / dTotal;
+      const alFinal = pos > 0.8;
+      return `<span class="corte-etiqueta${alFinal ? " al-final" : ""}" style="left:${(pos * 100).toFixed(3)}%">${esc(
+        pt.etiqueta
+      )} · km ${decimal(pt.km)}</span>`;
+    })
+    .join("");
+
+  const regla = marcas
+    .map(
+      (k) =>
+        `<span class="marca-km" style="left:${((k * 1000) / dTotal * 100).toFixed(3)}%"><i></i><b>${entero(k)}</b></span>`
+    )
+    .join("");
+
+  return `<div class="hero-perfil">
+  <div class="hero-etiquetas">${etiquetas}</div>
+  <svg id="perfil" class="silueta hero" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"
+    role="img" aria-label="Perfil de altimetría: de ${entero(suelo)} a ${entero(techo)} metros a lo largo de ${decimal(kmTotal)} kilómetros"
+    data-dtotal="${dTotal}" data-base="${base.toFixed(2)}" data-alto="${alto.toFixed(2)}" data-h="${H}" data-w="${W}">
+    <path d="${d}"/>
+    <g class="cortes">${reglas}</g>
+    <line id="perfil-cruz" class="perfil-cruz" x1="0" y1="0" x2="0" y2="${H}" hidden/>
+    <circle id="perfil-punto" class="perfil-punto" r="5" hidden/>
+  </svg>
+  <div class="hero-regla">${regla}</div>
+  <div id="perfil-globo" class="globo" hidden></div>
+</div>`;
 }
 
-function datosMapas(rutas) {
-  const datos = {};
-  for (const r of rutas) datos[r.slug] = trazadoMini(r.trazado);
-  return `<script type="application/json" id="datos-mapas">${JSON.stringify(datos).replace(
-    /</g,
-    "\\u003c"
-  )}</script>`;
+// ------------------------------------------------------------------- piezas
+
+function dato(valor, unidad, etiqueta, { grande = false } = {}) {
+  if (valor === null || valor === undefined || valor === "") return "";
+  return `<div class="dato${grande ? " grande" : ""}">
+  <span class="dato-valor mono">${valor}${unidad ? `<small>${esc(unidad)}</small>` : ""}</span>
+  <span class="dato-etiqueta">${esc(etiqueta)}</span>
+</div>`;
 }
 
-// ------------------------------------------------------------------- esqueleto
+function tiempos(r) {
+  if (r.tiempoMovimiento) {
+    return [
+      { etiqueta: "En movimiento", valor: duracion(r.tiempoMovimiento) },
+      { etiqueta: "Tiempo total", valor: duracion(r.tiempoTotal) || "—" },
+    ];
+  }
+  return [{ etiqueta: "Tiempo estimado", valor: duracion(r.tiempoEstimado) }];
+}
+
+function meta(r) {
+  const partes = [r.zona, TIPOS_BICI[r.bici] && TIPOS_BICI[r.bici].etiqueta, TIPOS_RECORRIDO[r.tipoRecorrido]];
+  if (r.dificultad) partes.push(DIFICULTADES[r.dificultad]);
+  if (r.fotos && r.fotos.length) partes.push(`${r.fotos.length} ${r.fotos.length === 1 ? "foto" : "fotos"}`);
+  if (r.video) partes.push("vídeo");
+  return partes.filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('<span class="sep">/</span>');
+}
+
+// ------------------------------------------------------------------ esqueleto
 
 function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", imagen = "" }) {
-  const tituloCompleto = titulo === SITIO ? `${SITIO} · ${LEMA}` : `${titulo} · ${SITIO}`;
+  const tituloCompleto = titulo === SITIO ? `${SITIO} · Rutas en bici` : `${titulo} · ${SITIO}`;
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -82,39 +152,34 @@ function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", imag
 <meta property="og:description" content="${esc(descripcion)}">
 <meta property="og:type" content="website">
 ${imagen ? `<meta property="og:image" content="${esc(imagen)}">\n<meta name="twitter:card" content="summary_large_image">` : ""}
-<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f4f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0c" media="(prefers-color-scheme: dark)">
+${FUENTES}
 <link rel="stylesheet" href="${base}assets/styles.css">
 <link rel="icon" href="${base}assets/icono.svg" type="image/svg+xml">
 <script>
-try {
-  var t = localStorage.getItem("rutometro-tema");
-  if (t) document.documentElement.dataset.tema = t;
-} catch (e) {}
+try { var t = localStorage.getItem("rutometro-tema"); if (t) document.documentElement.dataset.tema = t; } catch (e) {}
 </script>
 </head>
 <body>
 <a class="salto" href="#principal">Ir al contenido</a>
-<header class="cabecera">
-  <div class="contenedor cabecera-fila">
-    <a class="marca" href="${base}">
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M2 18h3l4-9 3 6 2-4 3 7h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>${SITIO}</span>
-    </a>
-    <nav class="cabecera-acciones">
-      ${ruta ? `<a class="enlace-vuelta" href="${base}">Todas las rutas</a>` : ""}
-      <button type="button" class="boton-tema" id="boton-tema" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema">
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path d="M12 3v2m0 14v2m-7-9H3m18 0h-2M6.3 6.3 4.9 4.9m14.2 14.2-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+<header class="barra">
+  <div class="caja barra-fila">
+    <a class="marca" href="${base}">RUTÓMETRO</a>
+    <div class="barra-der">
+      ${ruta ? `<a class="volver" href="${base}">Todas las rutas</a>` : ""}
+      <button type="button" id="boton-tema" class="boton-tema" aria-label="Cambiar entre tema claro y oscuro">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>
       </button>
-    </nav>
+    </div>
   </div>
 </header>
 <main id="principal">
 ${contenido}
 </main>
 <footer class="pie">
-  <div class="contenedor">
-    <p>${SITIO} — rutas propias, trazadas y verificadas sobre el terreno. Los archivos GPX se ofrecen tal cual: comprueba siempre el estado de los caminos y la normativa de la zona antes de salir.</p>
+  <div class="caja">
+    <p>Rutas propias, trazadas y verificadas sobre el terreno. Los archivos GPX se ofrecen tal cual: comprueba siempre el estado de los caminos y la normativa de la zona antes de salir.</p>
   </div>
 </footer>
 <script src="${base}assets/tema.js"></script>
@@ -124,98 +189,39 @@ ${scripts}
 `;
 }
 
-// ------------------------------------------------------------------ piezas
+// -------------------------------------------------------------------- filas
 
-function insignias(r) {
-  const b = TIPOS_BICI[r.bici];
-  const partes = [];
-  if (b) partes.push(`<span class="insignia bici-${r.bici}">${b.etiqueta}</span>`);
-  if (r.tipoRecorrido) {
-    partes.push(
-      `<span class="insignia neutra">${esc(TIPOS_RECORRIDO[r.tipoRecorrido] || r.tipoRecorrido)}</span>`
-    );
-  }
-  return partes.join("");
-}
-
-function puntosDificultad(n) {
-  if (!n) return "";
-  const puntos = [1, 2, 3, 4, 5]
-    .map((i) => `<span class="punto${i <= n ? " on" : ""}"></span>`)
-    .join("");
-  return `<span class="dificultad" title="Dificultad: ${esc(DIFICULTADES[n] || n)}"><span class="visual" aria-hidden="true">${puntos}</span><span class="texto">${esc(DIFICULTADES[n] || n)}</span></span>`;
-}
-
-/** Tiempo que se muestra: el real si el GPX lo trae, si no el estimado. */
-function tiempos(r) {
-  if (r.tiempoMovimiento) {
-    return [
-      { etiqueta: "En movimiento", valor: duracion(r.tiempoMovimiento) },
-      { etiqueta: "Tiempo total", valor: duracion(r.tiempoTotal) || "—" },
-    ];
-  }
-  return [{ etiqueta: "Tiempo estimado", valor: duracion(r.tiempoEstimado), nota: "estimado" }];
-}
-
-function cifra(etiqueta, valor, unidad, nota) {
-  if (valor === null || valor === undefined || valor === "") return "";
-  return `<div class="cifra">
-  <span class="cifra-valor">${valor}${unidad ? `<small>${unidad}</small>` : ""}</span>
-  <span class="cifra-etiqueta">${esc(etiqueta)}</span>
-  ${nota ? `<span class="cifra-nota">${esc(nota)}</span>` : ""}
-</div>`;
-}
-
-/** Las cinco cifras de la ficha. */
-function franjaCifras(r) {
+function fila(r, base, { numero = null } = {}) {
   const t = tiempos(r);
-  return `<dl class="cifras">
-  ${cifra("Distancia", km(r.distancia), "km")}
-  ${cifra("Desnivel +", entero(r.desnivelPositivo), "m")}
-  ${t.map((x) => cifra(x.etiqueta, x.valor, "", x.nota)).join("")}
-  ${cifra("Recorrido", esc(TIPOS_RECORRIDO[r.tipoRecorrido] || r.tipoRecorrido))}
-</dl>`;
-}
-
-// --------------------------------------------------------------- tarjetas
-
-function tarjeta(r, base, { compacta = false } = {}) {
-  const t = tiempos(r);
-  return `<article class="tarjeta${compacta ? " compacta" : ""}"
-  data-nombre="${esc(r.nombre.toLowerCase())}"
-  data-zona="${esc(r.zona || "")}"
+  return `<article class="ruta-fila"
   data-busqueda="${esc([r.nombre, r.zona, r.provincia, (r.tags || []).join(" ")].filter(Boolean).join(" ").toLowerCase())}"
+  data-zona="${esc(r.zona || "")}"
   data-bici="${esc(r.bici || "")}"
   data-dist="${r.distancia}"
   data-dplus="${r.desnivelPositivo}"
   data-dif="${r.dificultad || 0}"
   data-orden="${r.orden}">
-  <a class="tarjeta-enlace" href="${base}ruta/${r.slug}/">
-    <div class="tarjeta-trazo" data-slug="${r.slug}">
-      ${r.miniatura}
-      ${
-        r.fotos && r.fotos.length
-          ? `<span class="distintivo-fotos"><svg aria-hidden="true" viewBox="0 0 24 24" width="13" height="13"><path d="M3 7h3l2-2h8l2 2h3v12H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>${r.fotos.length}</span>`
-          : ""
-      }
-    </div>
-    <div class="tarjeta-cuerpo">
-      <div class="tarjeta-cabeza">
-        <h2 class="tarjeta-titulo">${esc(r.nombre)}</h2>
-        ${r.zona ? `<p class="tarjeta-zona">${esc(r.zona)}</p>` : ""}
+  <a class="ruta-enlace" href="${base}ruta/${r.slug}/">
+    <div class="ruta-cabeza">
+      <div class="ruta-ident">
+        ${numero !== null ? `<span class="ruta-num mono">${String(numero).padStart(2, "0")}</span>` : ""}
+        <div>
+          <h2 class="nombre">${esc(r.nombre)}</h2>
+          <div class="ruta-meta">${meta(r)}</div>
+        </div>
       </div>
-      <div class="tarjeta-insignias">${insignias(r)} ${puntosDificultad(r.dificultad)}</div>
-      <dl class="cifras compactas">
-        ${cifra("Distancia", km(r.distancia), "km")}
-        ${cifra("Desnivel +", entero(r.desnivelPositivo), "m")}
-        ${cifra(t[0].etiqueta, t[0].valor)}
-      </dl>
+      <div class="ruta-datos">
+        ${dato(km(r.distancia), "km", "Distancia")}
+        ${dato(entero(r.desnivelPositivo), "m", "Desnivel +")}
+        ${dato(t[0].valor, "", t[0].etiqueta)}
+      </div>
     </div>
+    ${silueta(r.perfil)}
   </a>
 </article>`;
 }
 
-// --------------------------------------------------------------------- indice
+// -------------------------------------------------------------------- indice
 
 export function paginaIndice({ base, rutas, zonas }) {
   const totalKm = rutas.reduce((a, r) => a + r.distancia, 0);
@@ -223,56 +229,72 @@ export function paginaIndice({ base, rutas, zonas }) {
   const bicis = [...new Set(rutas.map((r) => r.bici).filter(Boolean))];
 
   const contenido = `
-<section class="portada">
-  <div class="contenedor">
-    <h1>${SITIO}</h1>
-    <p class="lema">${LEMA}</p>
-    <dl class="cifras portada-cifras">
-      ${cifra("Rutas", entero(rutas.length))}
-      ${cifra("Kilómetros", entero(totalKm / 1000))}
-      ${cifra("Desnivel acumulado", entero(totalD), "m")}
-    </dl>
-  </div>
-</section>
-
-<section class="filtros" aria-label="Filtros de búsqueda">
-  <div class="contenedor">
-    <div class="filtros-fila">
-      <div class="campo campo-buscar">
-        <label for="f-buscar">Buscar</label>
-        <input type="search" id="f-buscar" placeholder="Nombre, zona, puerto…" autocomplete="off">
+<div class="caja">
+  <section class="portada">
+    <div class="portada-fila">
+      <h1 class="nombre titular">${SITIO}</h1>
+      <div class="portada-datos">
+        ${dato(entero(rutas.length), "", "Rutas")}
+        ${dato(entero(totalKm / 1000), "km", "Recorridos")}
+        ${dato(entero(totalD), "m", "Desnivel")}
       </div>
-      <div class="campo">
-        <label for="f-zona">Zona</label>
-        <select id="f-zona">
+    </div>
+    <p class="lema">${LEMA}</p>
+  </section>
+
+  <section class="controles" aria-label="Buscar y filtrar">
+    <div class="buscador">
+      <label for="f-buscar" class="dato-etiqueta">Buscar</label>
+      <input type="search" id="f-buscar" placeholder="nombre, zona, pueblo, puerto…" autocomplete="off">
+    </div>
+    <div class="filtros">
+      <div class="grupo">
+        <span class="grupo-nombre">Bici</span>
+        <button type="button" class="chip activo" data-bici="">Todas</button>
+        ${bicis
+          .map(
+            (b) =>
+              `<button type="button" class="chip" data-bici="${esc(b)}">${esc(
+                TIPOS_BICI[b] ? TIPOS_BICI[b].etiqueta : b
+              )}</button>`
+          )
+          .join("")}
+      </div>
+      ${
+        zonas.length > 1
+          ? `<div class="grupo">
+        <span class="grupo-nombre">Zona</span>
+        <select id="f-zona" aria-label="Zona">
           <option value="">Todas</option>
           ${zonas.map((z) => `<option value="${esc(z)}">${esc(z)}</option>`).join("")}
         </select>
-      </div>
-      <div class="campo">
-        <label for="f-dist">Distancia máxima</label>
-        <select id="f-dist">
-          <option value="">Sin límite</option>
+      </div>`
+          : ""
+      }
+      <div class="grupo">
+        <span class="grupo-nombre">Distancia</span>
+        <select id="f-dist" aria-label="Distancia máxima">
+          <option value="">Toda</option>
           <option value="30">Hasta 30 km</option>
           <option value="60">Hasta 60 km</option>
           <option value="100">Hasta 100 km</option>
           <option value="150">Hasta 150 km</option>
         </select>
       </div>
-      <div class="campo">
-        <label for="f-dplus">Desnivel máximo</label>
-        <select id="f-dplus">
-          <option value="">Sin límite</option>
+      <div class="grupo">
+        <span class="grupo-nombre">Desnivel</span>
+        <select id="f-dplus" aria-label="Desnivel máximo">
+          <option value="">Todo</option>
           <option value="500">Hasta 500 m</option>
           <option value="1000">Hasta 1.000 m</option>
           <option value="2000">Hasta 2.000 m</option>
           <option value="3000">Hasta 3.000 m</option>
         </select>
       </div>
-      <div class="campo">
-        <label for="f-dif">Dificultad máxima</label>
-        <select id="f-dif">
-          <option value="">Cualquiera</option>
+      <div class="grupo">
+        <span class="grupo-nombre">Dificultad</span>
+        <select id="f-dif" aria-label="Dificultad máxima">
+          <option value="">Toda</option>
           <option value="1">Muy fácil</option>
           <option value="2">Fácil</option>
           <option value="3">Moderada</option>
@@ -280,40 +302,21 @@ export function paginaIndice({ base, rutas, zonas }) {
           <option value="5">Muy difícil</option>
         </select>
       </div>
-      <div class="campo">
-        <label for="f-orden">Ordenar por</label>
-        <select id="f-orden">
-          <option value="reciente">Más recientes</option>
-          <option value="dist-desc">Más distancia</option>
-          <option value="dist-asc">Menos distancia</option>
-          <option value="dplus-desc">Más desnivel</option>
-          <option value="dureza-desc">Más dureza</option>
-          <option value="nombre">Nombre</option>
-        </select>
+      <div class="grupo derecha">
+        <span class="grupo-nombre">Orden</span>
+        <button type="button" class="chip activo" data-orden="reciente">Recientes</button>
+        <button type="button" class="chip" data-orden="dist-desc">Distancia</button>
+        <button type="button" class="chip" data-orden="dplus-desc">Desnivel</button>
       </div>
     </div>
-    <div class="chips" role="group" aria-label="Tipo de bici">
-      <button type="button" class="chip activo" data-bici="">Todas</button>
-      ${bicis
-        .map(
-          (b) =>
-            `<button type="button" class="chip bici-${b}" data-bici="${esc(b)}">${esc(
-              TIPOS_BICI[b] ? TIPOS_BICI[b].etiqueta : b
-            )}</button>`
-        )
-        .join("")}
-    </div>
-    <p class="contador" id="contador" aria-live="polite"></p>
-  </div>
-</section>
+    <p class="contador mono" id="contador" aria-live="polite"></p>
+  </section>
 
-<section class="contenedor">
-  <div class="feed" id="rejilla">
-    ${rutas.map((r) => tarjeta(r, base)).join("\n")}
-  </div>
-  <p class="vacio" id="vacio" hidden>Ninguna ruta coincide con los filtros. <button type="button" id="limpiar">Quitar filtros</button></p>
-  <p class="credito-mapas">Mapas de las miniaturas: &copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a></p>
-</section>
+  <section id="rejilla">
+    ${rutas.map((r, i) => fila(r, base, { numero: i + 1 })).join("\n")}
+  </section>
+  <p class="vacio" id="vacio" hidden>Ninguna ruta coincide. <button type="button" id="limpiar">Quitar los filtros</button></p>
+</div>
 `;
 
   return layout({
@@ -321,226 +324,88 @@ export function paginaIndice({ base, rutas, zonas }) {
     titulo: SITIO,
     descripcion: `${rutas.length} rutas en bici de carretera, gravel y BTT con mapa, perfil de altimetría y descarga del archivo GPX.`,
     contenido,
-    scripts: `${LEAFLET}
-${datosMapas(rutas)}
-<script src="${base}assets/indice.js"></script>
-<script src="${base}assets/minimapas.js"></script>`,
+    scripts: `<script src="${base}assets/indice.js"></script>`,
   });
 }
 
-// ------------------------------------------------------------- perfil (SVG)
-
-function perfilSvg(perfil, puntos = [], { ancho = 1000, alto = 230 } = {}) {
-  const padIzq = 46;
-  const padDer = 12;
-  const padArr = 14;
-  const padAba = 26;
-  const w = ancho - padIzq - padDer;
-  const h = alto - padArr - padAba;
-
-  const dTotal = perfil[perfil.length - 1][0];
-  const eles = perfil.map((p) => p[1]).filter((e) => e !== null);
-  if (eles.length === 0) return "";
-  let eMin = Math.min(...eles);
-  let eMax = Math.max(...eles);
-  const rango = Math.max(30, eMax - eMin);
-  eMin = Math.floor((eMin - rango * 0.12) / 10) * 10;
-  eMax = Math.ceil((eMax + rango * 0.12) / 10) * 10;
-
-  const X = (d) => padIzq + (d / dTotal) * w;
-  const Y = (e) => padArr + h - ((e - eMin) / (eMax - eMin)) * h;
-
-  const area = [`M${X(0).toFixed(1)} ${(padArr + h).toFixed(1)}`];
-  for (const p of perfil) area.push(`L${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`);
-  area.push(`L${X(dTotal).toFixed(1)} ${(padArr + h).toFixed(1)}Z`);
-
-  const lineas = [];
-  let actual = null;
-  for (let i = 0; i < perfil.length; i++) {
-    const clase = tramoDe(perfil[i][2]);
-    const punto = `${X(perfil[i][0]).toFixed(1)},${Y(perfil[i][1]).toFixed(1)}`;
-    if (!actual || actual.clase !== clase) {
-      if (actual) actual.puntos.push(punto);
-      actual = { clase, puntos: [punto] };
-      lineas.push(actual);
-    } else {
-      actual.puntos.push(punto);
-    }
-  }
-
-  const pc = (v, total) => ((v / total) * 100).toFixed(3);
-
-  const rejilla = [];
-  const marcasY = [];
-  for (let i = 0; i <= 4; i++) {
-    const e = eMin + ((eMax - eMin) * i) / 4;
-    const y = Y(e);
-    rejilla.push(
-      `<line class="rejilla-linea" x1="${padIzq}" y1="${y.toFixed(1)}" x2="${(padIzq + w).toFixed(1)}" y2="${y.toFixed(1)}"/>`
-    );
-    marcasY.push(
-      `<span class="marca-y" style="top:${pc(y, alto)}%;right:${pc(ancho - padIzq + 8, ancho)}%">${entero(e)}</span>`
-    );
-  }
-
-  const kmTotal = dTotal / 1000;
-  const pasoKm = kmTotal > 120 ? 20 : kmTotal > 60 ? 10 : kmTotal > 25 ? 5 : kmTotal > 10 ? 2 : 1;
-  const marcasX = [];
-  for (let k = 0; k <= kmTotal; k += pasoKm) {
-    marcasX.push(`<span class="marca-x" style="left:${pc(X(k * 1000), ancho)}%">${entero(k)}</span>`);
-  }
-
-  const marcasPunto = puntos
-    .map((pt) => {
-      const x = X(Math.min(pt.metros, dTotal));
-      let cerca = perfil[0];
-      for (const q of perfil) {
-        if (Math.abs(q[0] - pt.metros) < Math.abs(cerca[0] - pt.metros)) cerca = q;
-      }
-      const y = Y(cerca[1]);
-      const titulo = `km ${decimal(pt.km)} · ${pt.etiqueta}${pt.texto ? `: ${pt.texto}` : ""}`;
-      return `<g class="perfil-punto-interes${pt.aviso ? " es-aviso" : ""}"><title>${esc(titulo)}</title><line x1="${x.toFixed(1)}" y1="${(padArr + h).toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6"/></g>`;
-    })
-    .join("");
-
-  return `<div class="perfil-caja">
-<svg id="perfil" class="perfil-svg" viewBox="0 0 ${ancho} ${alto}" preserveAspectRatio="none"
-  role="img" aria-label="Perfil de altimetría: de ${entero(eMin)} a ${entero(eMax)} metros a lo largo de ${decimal(dTotal / 1000)} kilómetros"
-  data-dtotal="${dTotal}" data-emin="${eMin}" data-emax="${eMax}"
-  data-padizq="${padIzq}" data-padder="${padDer}" data-padarr="${padArr}" data-padaba="${padAba}">
-  <g class="rejilla-perfil">${rejilla.join("")}</g>
-  <path class="perfil-area" d="${area.join(" ")}"/>
-  <g class="perfil-linea">${lineas
-    .map((l) => `<polyline class="g g-${l.clase}" points="${l.puntos.join(" ")}"/>`)
-    .join("")}</g>
-  <g class="perfil-puntos">${marcasPunto}</g>
-  <line id="perfil-cruz" class="perfil-cruz" x1="0" y1="${padArr}" x2="0" y2="${padArr + h}" hidden/>
-  <circle id="perfil-punto" class="perfil-punto" r="5" hidden/>
-</svg>
-<div class="perfil-marcas" aria-hidden="true">${marcasY.join("")}${marcasX.join("")}</div>
-<span class="perfil-unidad-y" aria-hidden="true">m</span>
-</div>`;
-}
-
-function leyendaPendiente() {
-  return `<div class="leyenda" aria-label="Escala de pendiente">
-  ${TRAMOS_PENDIENTE.map(
-    (t) =>
-      `<span class="leyenda-item"><span class="leyenda-color g-bg-${t.clase}" aria-hidden="true"></span>${esc(t.etiqueta)}</span>`
-  ).join("")}
-</div>`;
-}
-
-// ------------------------------------------------------------- ficha de ruta
+// --------------------------------------------------------------------- ficha
 
 export function paginaRuta({ base, r, otras }) {
-  const visor =
-    r.fotos && r.fotos.length
-      ? `<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-label="Foto ampliada">
-  <button type="button" class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&times;</button>
-  <button type="button" class="visor-nav visor-antes" id="visor-antes" aria-label="Foto anterior">&#8249;</button>
-  <figure class="visor-figura">
-    <img id="visor-img" src="" alt="">
-    <figcaption id="visor-pie"></figcaption>
-  </figure>
-  <button type="button" class="visor-nav visor-despues" id="visor-despues" aria-label="Foto siguiente">&#8250;</button>
-</div>`
-      : "";
-
   const video = analizarVideo(r.video);
+  const t = tiempos(r);
 
   const practicos = [
     r.parking ? ["Salida y aparcamiento", esc(r.parking)] : null,
     r.epoca ? ["Mejor época", esc(r.epoca)] : null,
     r.agua ? ["Agua", esc(r.agua)] : null,
     r.superficie ? ["Superficie", esc(r.superficie)] : null,
-    r.fecha ? ["Ruta registrada el", esc(fechaLarga(r.fecha) || r.fecha)] : null,
+    r.fecha ? ["Registrada el", esc(fechaLarga(r.fecha) || r.fecha)] : null,
   ].filter(Boolean);
 
+  const visor =
+    r.fotos && r.fotos.length
+      ? `<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  <button type="button" class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">×</button>
+  <button type="button" class="visor-nav visor-antes" id="visor-antes" aria-label="Foto anterior">‹</button>
+  <figure class="visor-figura"><img id="visor-img" src="" alt=""><figcaption id="visor-pie"></figcaption></figure>
+  <button type="button" class="visor-nav visor-despues" id="visor-despues" aria-label="Foto siguiente">›</button>
+</div>`
+      : "";
+
   const contenido = `
-<article class="ruta">
-  <div class="contenedor">
-    <nav class="migas"><a href="${base}">Rutas</a> <span aria-hidden="true">›</span> <span>${esc(r.nombre)}</span></nav>
-    <header class="ruta-cabecera">
-      <div class="ruta-titulo">
-        <h1>${esc(r.nombre)}</h1>
-        <p class="ruta-sub">${[r.zona, r.provincia].filter(Boolean).map(esc).join(" · ")}</p>
-        <div class="tarjeta-insignias">${insignias(r)} ${puntosDificultad(r.dificultad)}</div>
+<article class="ficha">
+  <div class="caja">
+    <nav class="migas"><a href="${base}">Rutas</a> <span class="sep">/</span> <span>${esc(r.nombre)}</span></nav>
+    <header class="ficha-cabeza">
+      <div>
+        <h1 class="nombre titular">${esc(r.nombre)}</h1>
+        <div class="ruta-meta grande">${meta(r)}</div>
       </div>
-      <div class="descargas">
-        <a class="boton principal" href="${base}gpx/${r.slug}.gpx" download>
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Descargar GPX
-        </a>
-        <p class="peso">${esc(r.pesoGpx)} · ${entero(r.numPuntos)} puntos</p>
+      <div class="descarga">
+        <a class="boton" href="${base}gpx/${r.slug}.gpx" download>Descargar GPX</a>
+        <p class="peso mono">${esc(r.pesoGpx)} · ${entero(r.numPuntos)} puntos</p>
       </div>
     </header>
-    ${franjaCifras(r)}
-  </div>
-
-  <div class="contenedor lienzo">
-    <div class="panel">
-      <div id="mapa" class="mapa" data-slug="${esc(r.slug)}"></div>
-      ${
-        r.conAltitud
-          ? `<div class="perfil-envoltorio">
-        ${perfilSvg(r.perfil, r.puntos)}
-        <div id="perfil-globo" class="globo" hidden></div>
-      </div>
-      <div class="panel-pie">
-        <span class="panel-nota">Pasa el cursor por el perfil para ver ese punto en el mapa.</span>
-        ${leyendaPendiente()}
-      </div>`
-          : `<div class="panel-pie"><span class="panel-nota">Este GPX no incluye altitudes, así que no hay perfil.</span></div>`
-      }
+    <div class="cifras">
+      ${dato(km(r.distancia), "km", "Distancia", { grande: true })}
+      ${dato(entero(r.desnivelPositivo), "m", "Desnivel +", { grande: true })}
+      ${t.map((x) => dato(x.valor, "", x.etiqueta, { grande: true })).join("")}
+      ${dato(esc(TIPOS_RECORRIDO[r.tipoRecorrido] || r.tipoRecorrido), "", "Recorrido", { grande: true })}
     </div>
   </div>
 
-  <div class="contenedor">
-    ${
-      r.descripcionHtml
-        ? `<section class="bloque prosa">
-      <h2>La ruta</h2>
-      ${r.descripcionHtml}
-    </section>`
-        : ""
-    }
+  ${
+    r.conAltitud
+      ? `${silueta(r.perfil, { puntos: r.puntos || [], hero: true })}
+  <div class="caja"><p class="pie-grafico">Pasa el cursor por el perfil para ver ese punto en el mapa. Las líneas verticales son las paradas.</p></div>`
+      : ""
+  }
+
+  <div class="caja">
+    <section class="bloque">
+      <h2>Mapa</h2>
+      <div id="mapa" class="mapa"></div>
+    </section>
+
+    ${r.descripcionHtml ? `<section class="bloque prosa"><h2>La ruta</h2>${r.descripcionHtml}</section>` : ""}
 
     ${
       r.puntos && r.puntos.length
         ? `<section class="bloque">
-      <h2>Puntos de interés</h2>
-      <ul class="puntos">
+      <h2>Paradas</h2>
+      <ul class="paradas">
         ${r.puntos
           .map(
-            (pt) => `<li class="punto-item${pt.aviso ? " es-aviso" : ""}">
-          <span class="punto-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17">${
+            (pt) => `<li class="parada${pt.aviso ? " es-aviso" : ""}">
+          <span class="parada-km mono">km ${decimal(pt.km)}</span>
+          <span class="parada-icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16">${
             (TIPOS_PUNTO[pt.tipo] || TIPOS_PUNTO.otro).icono
           }</svg></span>
-          <span class="punto-km">km ${decimal(pt.km)}</span>
-          <span class="punto-texto"><b>${esc(pt.etiqueta)}</b>${pt.texto ? ` · ${esc(pt.texto)}` : ""}</span>
+          <span class="parada-texto"><b>${esc(pt.etiqueta)}</b>${pt.texto ? ` · ${esc(pt.texto)}` : ""}</span>
         </li>`
           )
           .join("")}
       </ul>
-    </section>`
-        : ""
-    }
-
-    ${
-      video
-        ? `<section class="bloque">
-      <h2>Vídeo</h2>
-      <div class="video${video.vertical ? " vertical" : ""}" id="video"
-           data-incrustar="${esc(video.incrustar)}" data-plataforma="${esc(video.plataforma)}">
-        <div class="video-marco">
-          <button type="button" class="video-boton">
-            <span class="video-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>
-            <span class="video-texto">Ver el vídeo<small>Se carga desde ${esc(video.plataforma)} al pulsar</small></span>
-          </button>
-        </div>
-      </div>
-      <p class="video-enlace"><a href="${esc(video.enlace)}" rel="noopener noreferrer" target="_blank">Abrir en ${esc(video.plataforma)}</a></p>
     </section>`
         : ""
     }
@@ -556,9 +421,9 @@ export function paginaRuta({ base, r, otras }) {
               `<button type="button" class="galeria-item" data-indice="${i}" aria-label="Ampliar foto ${i + 1}${
                 f.pie ? `: ${esc(f.pie)}` : ""
               }">
-            <img src="${base}fotos/${r.slug}/${encodeURIComponent(f.archivo)}" alt="${esc(f.pie)}" loading="lazy" decoding="async">
-            ${f.pie ? `<span class="galeria-pie">${esc(f.pie)}</span>` : ""}
-          </button>`
+          <img src="${base}fotos/${r.slug}/${encodeURIComponent(f.archivo)}" alt="${esc(f.pie)}" loading="lazy" decoding="async">
+          ${f.pie ? `<span class="galeria-pie">${esc(f.pie)}</span>` : ""}
+        </button>`
           )
           .join("")}
       </div>
@@ -567,30 +432,39 @@ export function paginaRuta({ base, r, otras }) {
     }
 
     ${
-      practicos.length
+      video
         ? `<section class="bloque">
-      <h2>Datos prácticos</h2>
-      <dl class="practicos">
-        ${practicos.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}
-      </dl>
+      <h2>Vídeo</h2>
+      <div class="video${video.vertical ? " vertical" : ""}" id="video"
+           data-incrustar="${esc(video.incrustar)}" data-plataforma="${esc(video.plataforma)}">
+        <div class="video-marco">
+          <button type="button" class="video-boton">
+            <span class="video-play" aria-hidden="true">▶</span>
+            <span class="video-texto">Ver el vídeo<small>Se carga desde ${esc(video.plataforma)} al pulsar</small></span>
+          </button>
+        </div>
+      </div>
+      <p class="video-enlace"><a href="${esc(video.enlace)}" rel="noopener noreferrer" target="_blank">Abrir en ${esc(video.plataforma)}</a></p>
     </section>`
         : ""
     }
 
     ${
-      r.avisos
+      practicos.length
         ? `<section class="bloque">
-      <h2>Avisos</h2>
-      <div class="aviso importante">${markdown(r.avisos)}</div>
+      <h2>Datos prácticos</h2>
+      <dl class="practicos">${practicos.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
     </section>`
         : ""
     }
+
+    ${r.avisos ? `<section class="bloque"><h2>Avisos</h2><div class="aviso">${markdown(r.avisos)}</div></section>` : ""}
 
     ${
       otras.length
         ? `<section class="bloque">
       <h2>Otras rutas</h2>
-      <div class="feed">${otras.map((o) => tarjeta(o, base, { compacta: true })).join("")}</div>
+      ${otras.map((o) => fila(o, base)).join("")}
     </section>`
         : ""
     }
@@ -635,9 +509,6 @@ ${visor}
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
 <script src="${base}assets/ruta.js"></script>
 ${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}
-${video ? `<script src="${base}assets/video.js"></script>` : ""}
-${otras.length ? `${datosMapas(otras)}\n<script src="${base}assets/minimapas.js"></script>` : ""}`,
+${video ? `<script src="${base}assets/video.js"></script>` : ""}`,
   });
 }
-
-export { miniatura };
