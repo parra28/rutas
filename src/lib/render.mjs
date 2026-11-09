@@ -109,6 +109,25 @@ function silueta(perfil, { puntos = [], hero = false } = {}) {
 </div>`;
 }
 
+/** Trazado reducido para los minimapas del carrusel. */
+function trazadoMini(trazado, maximo = 160) {
+  if (!trazado || trazado.length === 0) return [];
+  const paso = Math.max(1, Math.ceil(trazado.length / maximo));
+  const out = [];
+  for (let i = 0; i < trazado.length; i += paso) {
+    out.push([Math.round(trazado[i][0] * 1e4) / 1e4, Math.round(trazado[i][1] * 1e4) / 1e4]);
+  }
+  const u = trazado[trazado.length - 1];
+  out.push([Math.round(u[0] * 1e4) / 1e4, Math.round(u[1] * 1e4) / 1e4]);
+  return out;
+}
+
+function datosMapas(rutas) {
+  const datos = {};
+  for (const r of rutas) datos[r.slug] = trazadoMini(r.trazado);
+  return `<script type="application/json" id="datos-mapas">${JSON.stringify(datos).replace(/</g, "\\u003c")}</script>`;
+}
+
 // ------------------------------------------------------------------- piezas
 
 function dato(valor, unidad, etiqueta, { grande = false } = {}) {
@@ -139,7 +158,8 @@ function meta(r) {
 
 // ------------------------------------------------------------------ esqueleto
 
-function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", imagen = "" }) {
+function layout({ base, titulo, descripcion, ruta, contenido, scripts = "", imagen = "", ver = "" }) {
+  const v = ver ? `?v=${ver}` : "";
   const tituloCompleto = titulo === SITIO ? `${SITIO} · Rutas en bici` : `${titulo} · ${SITIO}`;
   return `<!doctype html>
 <html lang="es">
@@ -155,7 +175,7 @@ ${imagen ? `<meta property="og:image" content="${esc(imagen)}">\n<meta name="twi
 <meta name="theme-color" content="#f4f4f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0c" media="(prefers-color-scheme: dark)">
 ${FUENTES}
-<link rel="stylesheet" href="${base}assets/styles.css">
+<link rel="stylesheet" href="${base}assets/styles.css${v}">
 <link rel="icon" href="${base}assets/icono.svg" type="image/svg+xml">
 <script>
 try { var t = localStorage.getItem("rutometro-tema"); if (t) document.documentElement.dataset.tema = t; } catch (e) {}
@@ -182,7 +202,7 @@ ${contenido}
     <p>Rutas propias, trazadas y verificadas sobre el terreno. Los archivos GPX se ofrecen tal cual: comprueba siempre el estado de los caminos y la normativa de la zona antes de salir.</p>
   </div>
 </footer>
-<script src="${base}assets/tema.js"></script>
+<script src="${base}assets/tema.js${v}"></script>
 ${scripts}
 </body>
 </html>
@@ -216,14 +236,53 @@ function fila(r, base, { numero = null } = {}) {
         ${dato(t[0].valor, "", t[0].etiqueta)}
       </div>
     </div>
-    ${silueta(r.perfil)}
   </a>
+  ${carrusel(r, base)}
 </article>`;
+}
+
+/**
+ * Deslizable de la fila: el perfil primero, que es lo que identifica la
+ * ruta de un vistazo, luego el mapa y despues las fotos. Se mueve con el
+ * dedo, con la rueda o pulsando las etiquetas.
+ */
+function carrusel(r, base) {
+  const fotos = (r.fotos || []).slice(0, 4);
+  const diapos = [
+    `<div class="diapo" id="d-${r.slug}-0"><a class="diapo-enlace" href="${base}ruta/${r.slug}/" aria-label="Ver ${esc(
+      r.nombre
+    )}">${silueta(r.perfil)}</a></div>`,
+    `<div class="diapo" id="d-${r.slug}-1"><div class="minimapa" data-slug="${esc(r.slug)}"></div></div>`,
+    ...fotos.map(
+      (f, i) =>
+        `<div class="diapo" id="d-${r.slug}-${i + 2}"><img src="${base}fotos/${r.slug}/${encodeURIComponent(
+          f.archivo
+        )}" alt="${esc(f.pie)}" loading="lazy" decoding="async">${
+          f.pie ? `<span class="diapo-pie">${esc(f.pie)}</span>` : ""
+        }</div>`
+    ),
+  ];
+  const nombres = ["Desnivel", "Mapa", ...fotos.map((f, i) => `Foto ${i + 1}`)];
+
+  return `<div class="carrusel" data-slug="${esc(r.slug)}">
+  <div class="carrusel-pista">${diapos.join("")}</div>
+  <div class="carrusel-tabs" role="tablist" aria-label="Vistas de ${esc(r.nombre)}">
+    ${nombres
+      .map(
+        (n, i) =>
+          `<button type="button" class="carrusel-tab${i === 0 ? " activo" : ""}" data-indice="${i}" role="tab" aria-selected="${
+            i === 0
+          }">${esc(n)}</button>`
+      )
+      .join("")}
+  </div>
+</div>`;
 }
 
 // -------------------------------------------------------------------- indice
 
-export function paginaIndice({ base, rutas, zonas }) {
+export function paginaIndice({ base, rutas, zonas, ver = "" }) {
+  const v = ver ? `?v=${ver}` : "";
   const totalKm = rutas.reduce((a, r) => a + r.distancia, 0);
   const totalD = rutas.reduce((a, r) => a + r.desnivelPositivo, 0);
   const bicis = [...new Set(rutas.map((r) => r.bici).filter(Boolean))];
@@ -232,7 +291,7 @@ export function paginaIndice({ base, rutas, zonas }) {
 <div class="caja">
   <section class="portada">
     <div class="portada-fila">
-      <h1 class="nombre titular">${SITIO}</h1>
+      <h1 class="nombre titular-portada">${SITIO}</h1>
       <div class="portada-datos">
         ${dato(entero(rutas.length), "", "Rutas")}
         ${dato(entero(totalKm / 1000), "km", "Recorridos")}
@@ -324,13 +383,18 @@ export function paginaIndice({ base, rutas, zonas }) {
     titulo: SITIO,
     descripcion: `${rutas.length} rutas en bici de carretera, gravel y BTT con mapa, perfil de altimetría y descarga del archivo GPX.`,
     contenido,
-    scripts: `<script src="${base}assets/indice.js"></script>`,
+    scripts: `${LEAFLET}
+${datosMapas(rutas)}
+<script src="${base}assets/indice.js${v}"></script>
+<script src="${base}assets/carrusel.js${v}"></script>`,
+    ver,
   });
 }
 
 // --------------------------------------------------------------------- ficha
 
-export function paginaRuta({ base, r, otras }) {
+export function paginaRuta({ base, r, otras, ver = "" }) {
+  const v = ver ? `?v=${ver}` : "";
   const video = analizarVideo(r.video);
   const t = tiempos(r);
 
@@ -507,8 +571,10 @@ ${visor}
     contenido,
     scripts: `${LEAFLET}
 <script type="application/json" id="datos-ruta">${datosRuta.replace(/</g, "\\u003c")}</script>
-<script src="${base}assets/ruta.js"></script>
-${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js"></script>` : ""}
-${video ? `<script src="${base}assets/video.js"></script>` : ""}`,
+<script src="${base}assets/ruta.js${v}"></script>
+${r.fotos && r.fotos.length ? `<script src="${base}assets/galeria.js${v}"></script>` : ""}
+${video ? `<script src="${base}assets/video.js${v}"></script>` : ""}
+${otras.length ? `${datosMapas(otras)}\n<script src="${base}assets/carrusel.js${v}"></script>` : ""}`,
+    ver,
   });
 }

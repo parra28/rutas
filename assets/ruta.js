@@ -38,7 +38,7 @@
       ),
     };
 
-    mapa = L.map(divMapa, { layers: [capas["CyclOSM"]], scrollWheelZoom: false });
+    mapa = L.map(divMapa, { layers: [capas["CyclOSM"]], scrollWheelZoom: false, zoomSnap: 0.25 });
     mapa.on("click", function () { mapa.scrollWheelZoom.enable(); });
     mapa.on("mouseout", function () { mapa.scrollWheelZoom.disable(); });
 
@@ -49,7 +49,14 @@
     var puntos = d.trazado || [];
     L.polyline(puntos, { color: papel, weight: 7, opacity: 0.85, lineJoin: "round" }).addTo(mapa);
     linea = L.polyline(puntos, { color: tinta, weight: 3, lineJoin: "round" }).addTo(mapa);
-    mapa.fitBounds(linea.getBounds(), { padding: [24, 24] });
+    function encuadrar() {
+      mapa.invalidateSize({ animate: false });
+      mapa.fitBounds(linea.getBounds(), { padding: [20, 20] });
+    }
+    encuadrar();
+    // por si las fuentes o las imagenes cambian la altura despues de cargar
+    window.addEventListener("load", encuadrar);
+    window.addEventListener("resize", encuadrar);
 
     function icono(clase, html, tam) {
       return L.divIcon({

@@ -10,6 +10,7 @@
 import { readdir, readFile, writeFile, mkdir, cp, rm, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import { parseGpx, analizar, gpxLigero, crearLocalizador } from "./lib/gpx.mjs";
 import { resolverPuntos, puntosDelGpx } from "./lib/puntos.mjs";
@@ -227,10 +228,26 @@ async function escribir(ruta, contenido) {
   await writeFile(ruta, contenido);
 }
 
+/**
+ * Huella del contenido de assets/. Se cuelga de las URL como ?v=... para que
+ * al publicar un cambio nadie se quede con el CSS viejo en la cache mientras
+ * recibe el HTML nuevo, que es justo lo que deja la pagina rota.
+ */
+async function versionAssets() {
+  const dir = path.join(RAIZ, "assets");
+  const huella = createHash("sha256");
+  for (const f of (await readdir(dir)).sort()) {
+    huella.update(f);
+    huella.update(await readFile(path.join(dir, f)));
+  }
+  return huella.digest("hex").slice(0, 8);
+}
+
 async function generar() {
   console.log(`\nRutometro - generando el sitio (base "${BASE}")\n`);
 
   const rutas = await cargarRutas();
+  const ver = await versionAssets();
 
   await rm(DIR_SALIDA, { recursive: true, force: true });
   await mkdir(DIR_SALIDA, { recursive: true });
@@ -240,7 +257,7 @@ async function generar() {
   );
 
   // indice
-  await escribir(path.join(DIR_SALIDA, "index.html"), paginaIndice({ base: BASE, rutas, zonas }));
+  await escribir(path.join(DIR_SALIDA, "index.html"), paginaIndice({ base: BASE, rutas, zonas, ver }));
 
   // una pagina por ruta
   for (const r of rutas) {
@@ -254,7 +271,7 @@ async function generar() {
       .slice(0, 3);
     await escribir(
       path.join(DIR_SALIDA, "ruta", r.slug, "index.html"),
-      paginaRuta({ base: BASE, r, otras })
+      paginaRuta({ base: BASE, r, otras, ver })
     );
     await escribir(path.join(DIR_SALIDA, "gpx", `${r.slug}.gpx`), r.gpxLigero);
     for (const foto of r.fotos) {
@@ -300,7 +317,7 @@ async function generar() {
     for (const e of errores) console.error(`    - ${e}`);
     process.exitCode = 1;
   }
-  console.log(`\n  listo -> dist/\n`);
+  console.log(`\n  listo -> dist/  (assets v${ver})\n`);
 }
 
 generar().catch((e) => {
